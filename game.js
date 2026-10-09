@@ -35,8 +35,26 @@ const BN={w:['Schwert','Streitkolben','Axt','Bratpfanne'],a:['Wams','Kettenhemd'
 const SLOT={w:'Waffe',a:'Rüstung',m:'Amulett'},SIC={w:'🗡️',a:'🛡️',m:'📿'};
 let S,tab='dorf',armed=false,tt,F=null,G=null,Mr=null,sel=0,Iv=false,ua=null,mz={x:240,y:220,z:1},moved=false;
 
-const fresh=()=>({t:Date.now(),r:{h:150,l:150,e:100},b:{wood:1,clay:1,iron:1,store:1,farm:1,barr:0,tav:0},u:{sp:0,ax:0,sw:0},bq:null,tq:[],at:[],inc:[],q:null,qo:[],enc:[],mut:60,wt:100,fd:100,en:100,wm:100,fire:0,well:0,diff:100,aggr:2,nat:420,hero:null,eq:{w:null,a:null,m:null},inv:[],lvq:[],camps:CN.map(([n,g],i)=>({n,g,w:0,loy:100,own:false,lv:Math.min(3,i>>1)})),ns:Date.now()+720000,ng:Date.now()+360000,auto:{eat:false,q:false,rec:{sp:0,ax:0,sw:0}},bqq:[],log:[]});
-function load(){S=fresh();try{const s=JSON.parse(localStorage.getItem(K));if(s&&s.hero)S=Object.assign(S,s)}catch(e){}S.camps.forEach((c,i)=>{if(c.lv==null)c.lv=Math.min(3,i>>1)})}
+const SAVE_V=3;
+let impT='',expT='';
+const fresh=()=>({v:SAVE_V,lastExp:0,t:Date.now(),r:{h:150,l:150,e:100},b:{wood:1,clay:1,iron:1,store:1,farm:1,barr:0,tav:0},u:{sp:0,ax:0,sw:0},bq:null,tq:[],at:[],inc:[],q:null,qo:[],enc:[],mut:60,wt:100,fd:100,en:100,wm:100,fire:0,well:0,diff:100,aggr:2,nat:420,hero:null,eq:{w:null,a:null,m:null},inv:[],lvq:[],camps:CN.map(([n,g],i)=>({n,g,w:0,loy:100,own:false,lv:Math.min(3,i>>1)})),ns:Date.now()+720000,ng:Date.now()+360000,auto:{eat:false,q:false,rec:{sp:0,ax:0,sw:0}},bqq:[],log:[]});
+/* Spielstand: Version, Zusammenführen mit Standardwerten und Migration.
+   Neue Spielfunktionen: Standardwerte in fresh() ergänzen. Nur bei Umbauten bestehender Daten SAVE_V erhöhen und in migrate() einen Schritt ergänzen. */
+function merge(base,inc){if(inc===undefined||inc===null)return base;if(base===null||typeof base!=='object'||Array.isArray(base))return inc;const o=Object.assign({},base);for(const k in inc)o[k]=(k in base)?merge(base[k],inc[k]):inc[k];return o}
+function migrate(d){const v=d.v||1;let s=merge(fresh(),d);
+ s.camps=s.camps.map((c,i)=>Object.assign({g:'fire',w:0,loy:100,own:false,lv:Math.min(3,i>>1)},c));
+ /* Beispiel für ein künftiges Update: if(v<4){ s.neuesFeld=...; } */
+ s.v=SAVE_V;return s}
+const exp=()=>({game:'castle-day',v:SAVE_V,exported:new Date().toISOString(),data:S});
+function dl(){S.lastExp=Date.now();save();try{const b=new Blob([JSON.stringify(exp())],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='castle-day-spielstand-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast('Spielstand gespeichert. Nichts passiert? Nutze „Als Text kopieren“.')}catch(e){toast('Download nicht möglich – nutze „Als Text kopieren“.')}}
+function importText(t){let d;try{d=JSON.parse(t)}catch(e){toast('Das ist keine gültige Spielstand-Datei.');return}
+ if(d&&d.game&&d.game!=='castle-day'){toast('Die Datei gehört zu einem anderen Spiel.');return}
+ const raw=d&&d.data?d.data:d,v=(d&&d.v)||(raw&&raw.v)||1;
+ if(!raw||!raw.hero){toast('Kein Held im Spielstand gefunden.');return}
+ if(v>SAVE_V){toast('Der Spielstand stammt aus einer neueren Version. Bitte zuerst das Spiel aktualisieren.');return}
+ try{localStorage.setItem(K+'_backup',JSON.stringify(S))}catch(e){}
+ S=migrate(raw);S.t=Date.now();S.inc=[];F=null;G=null;impT='';save();render();toast('Spielstand eingespielt ✔')}
+function load(){S=fresh();try{const raw=localStorage.getItem(K),s=JSON.parse(raw);if(s&&s.hero){if((s.v||1)!==SAVE_V){try{localStorage.setItem(K+'_bak_v'+(s.v||1),raw)}catch(e){}}S=migrate(s)}}catch(e){}}
 function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
 
 const D=()=>S.diff/100;
@@ -251,10 +269,11 @@ function vAbenteuer(){
  o+=S.q?`<div class="card"><b>${E(S.q.t)}</b>${tbar('📜 Quest läuft',S.q.start||S.q.end-S.q.dur*1000,S.q.end)}<p>Belohnung: ${S.q.xp} EP</p></div>`:S.qo.map((q,i)=>`<div class="card"><b>${q.t}</b><div class="row" style="margin-top:6px"><span class="ch">💪 ${q.mut}</span><span class="ch">⏱ ${ft(q.dur)}</span><span class="ch">${q.xp} EP</span><span class="ch">${RN[q.res]} ${q.amt}</span><button class="b" data-a="quest" data-i="${i}">Annehmen</button></div></div>`).join('');
  return o}
 
-function vMehr(){const A=['Aus','Selten','Normal','Oft'];
+function vMehr(){const A=['Aus','Selten','Normal','Oft'];let bk=false;try{bk=!!localStorage.getItem(K+'_backup')}catch(e){}
  return `<div class="card"><h2>Schwierigkeit</h2><p>Gegnerstärke: <b id="dl">${S.diff} %</b> – wirkt sofort auf Dörfer, Monster und Überfälle. Ändere sie jederzeit, wenn gerade weniger Zeit ist.</p><input type="range" id="diff" min="25" max="200" step="5" value="${S.diff}" aria-label="Gegnerstärke">
  <p style="margin-top:8px">Überfälle auf dich (nur während du spielst):</p><div class="row">${A.map((a,i)=>`<button class="b s ${S.aggr===i?'on':''}" data-a="aggr" data-v="${i}">${a}</button>`).join('')}</div></div>
- <div class="card"><h2>🤖 Automatisierung</h2><p>Läuft nur, solange Castle Day offen ist.</p><div class="row" style="margin-top:6px"><button class="b s ${S.auto.eat?'on':''}" data-a="aeat">Auto-Versorgung ${S.auto.eat?'an':'aus'}</button><button class="b s ${S.auto.q?'on':''}" data-a="aq">Auto-Quest ${S.auto.q?'an':'aus'}</button></div><p>Versorgung: isst und trinkt unter 30 % und zündet nachts ein Feuer an. Auto-Quest nimmt die kürzeste mögliche Quest an.</p><p style="margin-top:6px">Auto-Rekrutierung, Zielanzahl je Truppe (tippen zum Wechseln):</p><div class="row">${Object.keys(U).map(k=>`<button class="b s" data-a="arec" data-u="${k}">${U[k].ic} ${S.auto.rec[k]||'aus'}</button>`).join('')}</div><p>Bauschleife: im Dorf-Tab bei einem Gebäude „＋ Schleife“ tippen.</p></div>
+ <div class="card"><h2>💾 Spielstand sichern</h2><p>Dein Spielstand liegt nur in diesem Browser. Sichere ihn regelmäßig, vor allem vor einem Update. Neue Funktionen werden beim Einspielen automatisch ergänzt, nichts geht verloren.</p><p>Letzte Sicherung: <b>${S.lastExp?new Date(S.lastExp).toLocaleString('de-DE'):'noch nie'}</b></p><div class="row" style="margin-top:6px"><button class="b s" data-a="dl">💾 Als Datei speichern</button><button class="b s" data-a="txt">📋 Als Text kopieren</button></div>${expT?`<textarea id="ex" readonly rows="3" onfocus="this.select()">${E(expT)}</textarea>`:''}<p style="margin-top:8px">Spielstand einspielen:</p><input type="file" id="fi" accept=".json,application/json"><textarea id="imp" rows="3" placeholder="…oder kopierten Text hier einfügen">${E(impT)}</textarea><div class="row"><button class="b s" data-a="imp">⬆️ Einspielen</button>${bk?'<button class="b s" data-a="rest">♻️ Stand vor letztem Import</button>':''}</div></div>
+<div class="card"><h2>🤖 Automatisierung</h2><p>Läuft nur, solange Castle Day offen ist.</p><div class="row" style="margin-top:6px"><button class="b s ${S.auto.eat?'on':''}" data-a="aeat">Auto-Versorgung ${S.auto.eat?'an':'aus'}</button><button class="b s ${S.auto.q?'on':''}" data-a="aq">Auto-Quest ${S.auto.q?'an':'aus'}</button></div><p>Versorgung: isst und trinkt unter 30 % und zündet nachts ein Feuer an. Auto-Quest nimmt die kürzeste mögliche Quest an.</p><p style="margin-top:6px">Auto-Rekrutierung, Zielanzahl je Truppe (tippen zum Wechseln):</p><div class="row">${Object.keys(U).map(k=>`<button class="b s" data-a="arec" data-u="${k}">${U[k].ic} ${S.auto.rec[k]||'aus'}</button>`).join('')}</div><p>Bauschleife: im Dorf-Tab bei einem Gebäude „＋ Schleife“ tippen.</p></div>
  <h2>Chronik</h2><div class="card log">${S.log.length?S.log.map(t=>`<p>${E(t)}</p>`).join(''):'<p>Noch nichts passiert. Sehr friedlich.</p>'}</div>
  <button class="b s" data-a="reset">${armed?'Wirklich alles löschen?':'Neu anfangen'}</button>`}
 
@@ -301,6 +320,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  case 'inv':Iv=true;break;
  case 'invx':Iv=false;G=null;ua=null;break;
  case 'fire':if(now<S.fire){toast('Das Feuer brennt noch.');return}if(!afford([15,0,0]))return;S.r.h-=15;S.fire=now+120000;toast('🔥 Das Lagerfeuer knistert');break;
+ case 'dl':dl();break;
+ case 'txt':{S.lastExp=Date.now();expT=JSON.stringify(exp());try{navigator.clipboard.writeText(expT).then(()=>toast('In die Zwischenablage kopiert'),()=>toast('Bitte den Text unten manuell kopieren'))}catch(x){toast('Bitte den Text unten manuell kopieren')}break}
+ case 'imp':importText($('#imp')?$('#imp').value:impT);return;
+ case 'rest':{try{const b=JSON.parse(localStorage.getItem(K+'_backup'));if(b&&b.hero){S=migrate(b);F=null;G=null;toast('Vorheriger Stand wiederhergestellt')}}catch(x){toast('Kein Backup gefunden')}break}
  case 'aeat':S.auto.eat=!S.auto.eat;break;
  case 'aq':S.auto.q=!S.auto.q;break;
  case 'arec':{const T=[0,10,25,50,100],i=T.indexOf(S.auto.rec[d.u]);S.auto.rec[d.u]=T[(i+1)%T.length];break}
@@ -312,7 +335,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  case 'reset':if(!armed){armed=true;break}try{localStorage.removeItem(K)}catch(x){}S=fresh();armed=false;break;
  }
  save();render()});
-document.addEventListener('input',e=>{if(e.target.id==='diff'){S.diff=+e.target.value;$('#dl').textContent=S.diff+' %';save()}});
+document.addEventListener('change',e=>{if(e.target.id==='fi'&&e.target.files[0]){const r=new FileReader();r.onload=()=>importText(r.result);r.readAsText(e.target.files[0]);e.target.value=''}});
+document.addEventListener('input',e=>{if(e.target.id==='imp')impT=e.target.value;if(e.target.id==='diff'){S.diff=+e.target.value;$('#dl').textContent=S.diff+' %';save()}});
 
 const GL=[['🪵','Holz','Baumaterial. Der Holzfäller produziert es.'],['🧱','Lehm','Baumaterial aus der Lehmgrube.'],['⛓️','Eisen','Für Truppen und Gebäude. Kommt aus der Eisenmine.'],['📦','Speicher','Zeigt, wie viel von jedem Rohstoff maximal gelagert werden kann.'],
 ['💧','Durst','Sinkt mit der Zeit. Brunnen, Wasser, Tee oder Eintopf füllen ihn auf.'],['🍖','Hunger','Sinkt mit der Zeit. Brot, Eintopf oder Wildbret füllen ihn auf.'],['⚡','Energie','Sinkt bei Kämpfen und Quests. Ein Lagerfeuer und manche Speisen füllen sie auf.'],
@@ -322,7 +346,7 @@ const GL=[['🪵','Holz','Baumaterial. Der Holzfäller produziert es.'],['🧱',
 ['🪓','Holzfäller / Axtschwinger','Gebäude für Holz, aber auch Truppe mit hohem Angriff und wenig Abwehr.'],['⛏️','Eisenmine','Produziert Eisen.'],['🌾','Bauernhof','Mehr Bauern, damit du mehr Truppen halten kannst.'],['🛡️','Kaserne / Abwehr','Schaltet Truppen frei. Bei Werten: Abwehr bzw. Rüstung.'],
 ['🔱','Speerträger','Gute Abwehr, schwacher Angriff.'],['🗡️','Schwert','Schwertkämpfer oder Waffe. Erhöht den Angriff.'],['⚔️','Angriff','Dein Kampfwert. Auch das Symbol der Klasse Krieger.'],['🔮','Magier','Bekommt 50 % mehr Erfahrung aus Quests.'],['🏹','Späher','Erbeutet 30 % mehr bei Raubzügen.'],
 ['❄️','Frost','Frost-Gegner. Frost-Edelsteine geben Frost-Widerstand.'],['☠️','Gift','Gift-Gegner. Gift-Edelsteine geben Gift-Widerstand.'],['💎','Edelstein','Wird in einen Sockel gesetzt und gibt Widerstand gegen einen Gegnertyp.'],['❤️','Leben','Deine Lebenspunkte in Kämpfen.'],['🍀','Glück','Erhöht Drop-Chancen und die Chance auf bessere Items.'],
-['⛺','Lager','Entwicklungsstufe 1 von 5. Gegnerische Dörfer wachsen mit der Zeit.'],['🛖','Weiler','Stufe 2 von 5 eines gegnerischen Dorfes.'],['🏡','Dorf','Stufe 3 von 5 eines gegnerischen Dorfes.'],['🏰','Burg','Stufe 4 von 5. Starke Verteidigung. Kann überfallen und bei 0 % Loyalität übernommen werden.'],['🏯','Festung','Höchste Stufe 5: stark verteidigt, aber viel Beute.'],['🤖','Automatisierung','Bauschleife, Rekrutierung, Versorgung und Quests laufen automatisch.'],['🏠','Dein Dorf','Hier bist du zu Hause.'],['🚩','Erobertes Dorf','Gehört dir und liefert Rohstoffe.'],['✦','Spezialeffekt','Besonderer Bonus auf epischen, legendären und Set-Items.'],['★','Legendär','Legendäre Items haben zwei starke Effekte.'],['📿','Amulett','Gibt Glück und Sockel für Edelsteine.'],['◯','Sockel','Freier Platz für einen Edelstein.'],
+['⛺','Lager','Entwicklungsstufe 1 von 5. Gegnerische Dörfer wachsen mit der Zeit.'],['🛖','Weiler','Stufe 2 von 5 eines gegnerischen Dorfes.'],['🏡','Dorf','Stufe 3 von 5 eines gegnerischen Dorfes.'],['🏰','Burg','Stufe 4 von 5. Starke Verteidigung. Kann überfallen und bei 0 % Loyalität übernommen werden.'],['🏯','Festung','Höchste Stufe 5: stark verteidigt, aber viel Beute.'],['🤖','Automatisierung','Bauschleife, Rekrutierung, Versorgung und Quests laufen automatisch.'],['💾','Spielstand','Sichert deinen Fortschritt als Datei, damit du ihn nach einem Update wieder einspielen kannst.'],['🏠','Dein Dorf','Hier bist du zu Hause.'],['🚩','Erobertes Dorf','Gehört dir und liefert Rohstoffe.'],['✦','Spezialeffekt','Besonderer Bonus auf epischen, legendären und Set-Items.'],['★','Legendär','Legendäre Items haben zwei starke Effekte.'],['📿','Amulett','Gibt Glück und Sockel für Edelsteine.'],['◯','Sockel','Freier Platz für einen Edelstein.'],
 ['💥','Kritischer Treffer','Macht 80 % mehr Schaden.'],['🏆','Sieg','Du hast gewonnen und Belohnung erhalten.'],['😵','Bewusstlos','Du hast verloren. Du verlierst nur etwas Durst und Hunger, sterben kannst du nicht.'],['😩','Geschwächt','Zu niedrige Überlebenswerte senken deinen Angriff.'],['😊','Gut versorgt','Alle Überlebenswerte sind in Ordnung.'],
 ['🍞','Brot','Stillt Hunger.'],['🍲','Eintopf','Stillt viel Hunger und wärmt etwas.'],['🍯','Met','Stillt Durst und gibt Mut.'],['🍵','Kräutertee','Stillt Durst, wärmt und gibt Energie.'],['⚠️','Angriff naht','Ein Gegner überfällt bald dein Dorf. Deine Truppen und dein Held verteidigen.'],['🔨','Bauarbeiten','Ein Gebäude wird gerade ausgebaut.'],['🎁','Truhe','Belohnung beim Stufenaufstieg.'],['🪖','Truppen','Ausgebildete Soldaten.'],['🎉','Stufenaufstieg','Dein Held ist eine Stufe aufgestiegen.']];
 const GR=GL.map(([k,t,x])=>[new RegExp(k.replace(/\uFE0F/g,'')+'\uFE0F?','g'),t,x,k]);
