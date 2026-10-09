@@ -36,6 +36,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-of
 .log p{margin:0 0 8px;color:var(--ink);font-size:14px}
 input[type=text]{font:inherit;width:100%;padding:8px;border:3px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);margin:8px 0}
 input[type=range]{width:100%;accent-color:var(--acc)}
+textarea{font:inherit;font-size:12px;width:100%;padding:8px;border:3px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);margin:6px 0}
+input[type=file]{font:inherit;font-size:13px;margin:6px 0;max-width:100%}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);border-radius:999px;padding:8px 16px;font-weight:800;max-width:80%;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
 #toast.on{opacity:1}
 #tip{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;max-width:420px;margin:0 auto;background:var(--panel);color:var(--ink);border:3px solid var(--line);border-radius:14px;box-shadow:4px 4px 0 var(--line);padding:10px 12px;font-size:14px}
