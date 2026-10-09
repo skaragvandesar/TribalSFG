@@ -46,6 +46,15 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 #toast.on{opacity:1}
 #tip{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;max-width:420px;margin:0 auto;background:var(--panel);color:var(--ink);border:3px solid var(--line);border-radius:14px;box-shadow:4px 4px 0 var(--line);padding:10px 12px;font-size:14px}
 #tip[hidden]{display:none}
+.tb{position:relative;height:32px;border:3px solid var(--line);border-radius:10px;background:var(--bar);overflow:hidden;margin:6px 0;flex:1 1 100%;box-shadow:2px 2px 0 var(--line)}
+.tb i{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(45deg,var(--acc) 0 12px,#f7cd62 12px 24px);transition:width .5s linear}
+.tb.g i{background:repeating-linear-gradient(45deg,#2f9e44 0 12px,#58c46a 12px 24px)}
+.tb.b i{background:repeating-linear-gradient(45deg,#2f78c4 0 12px,#58a2ea 12px 24px)}
+.tb.r i{background:repeating-linear-gradient(45deg,#c4412f 0 12px,#ea6a58 12px 24px)}
+.tb.o i{background:repeating-linear-gradient(45deg,#d9731a 0 12px,#f39a46 12px 24px)}
+.tb span{position:relative;display:block;text-align:center;line-height:26px;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 18px/26px Bangers,Impact,sans-serif;letter-spacing:.05em;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 2px 0 #000}
+.tb.c{height:24px;margin:3px 0}.tb.c span{font-size:14px;line-height:18px}
+#tm{margin-top:4px}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 #modal[hidden],#invp[hidden]{display:none}
 .mbox{background:var(--panel);border:4px solid var(--line);border-radius:18px;box-shadow:6px 6px 0 var(--line);padding:20px;text-align:center;max-width:340px;width:100%}
@@ -59,8 +68,8 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 </style></head>
 <body>
 <header id="top" hidden>
- <div class="r1"><h1>Castle Day</h1><span class="pill" id="hp"></span><span class="pill" id="dn"></span></div><div class="xp"><span id="xpt"></span><div class="bar x"><i id="xpb"></i></div></div><div class="qr" id="qrow" hidden>📜 <span id="qn"></span><div class="bar x"><i id="qbh"></i></div></div>
- <div class="warn" id="warn" hidden></div>
+ <div class="r1"><h1>Castle Day</h1><span class="pill" id="hp"></span><span class="pill" id="dn"></span></div><div class="xp"><span id="xpt"></span><div class="bar x"><i id="xpb"></i></div></div>
+ <div id="tm"></div>
  <div class="r2"><div class="res">🪵 <span id="rh"></span></div><div class="res">🧱 <span id="rl"></span></div><div class="res">⛓️ <span id="re"></span></div><div class="res">📦 <span id="cap"></span></div></div>
  <div class="r2 sv"><span>💧</span><div class="bar bw"><i data-bar="wt"></i></div><span>🍖</span><div class="bar bf"><i data-bar="fd"></i></div><span>⚡</span><div class="bar be"><i data-bar="en"></i></div><span>🔥</span><div class="bar bm"><i data-bar="wm"></i></div></div>
  <nav id="tabs"></nav>
@@ -228,12 +237,13 @@ function tick(){
 function live(){
  if(!S.hero)return;
  RK.forEach(k=>$('#r'+k).textContent=Math.floor(S.r[k]));$('#cap').textContent=cap();
+ document.querySelectorAll('.tb').forEach(e=>{const st=+e.dataset.s,en=+e.dataset.e,n=Date.now(),pc=Math.min(100,Math.max(0,(n-st)/(en-st)*100));if(e.dataset.x&&n>en){e.remove();return}e.firstChild.style.width=pc+'%';e.querySelector('b').textContent=ft((en-n)/1000)+' · '+Math.floor(pc)+' %'});
  const hh_=S.hero,nx=hh_.lv*50;$('#xpb').style.width=(hh_.xp/nx*100)+'%';$('#xpt').textContent=`EP ${hh_.xp}/${nx}`;$('#dn').textContent=night()?'🌙 Nacht':'☀️ Tag';
- const qr=$('#qrow');qr.hidden=!S.q;if(S.q){const st=S.q.start||S.q.end-S.q.dur*1000,pc=Math.min(100,(Date.now()-st)/(S.q.end-st)*100);$('#qbh').style.width=pc+'%';$('#qn').textContent=S.q.t;document.querySelectorAll('.qb').forEach(e=>e.style.width=pc+'%')}
+ 
  document.querySelectorAll('[data-bar]').forEach(e=>e.style.width=Math.max(0,S[e.dataset.bar])+'%');
  document.querySelectorAll('[data-cd]').forEach(e=>e.textContent=ft((+e.dataset.cd-Date.now())/1000));
  document.querySelectorAll('[data-cost]').forEach(e=>{e.disabled=!afford(e.dataset.cost.split(',').map(Number))||(e.dataset.bq&&!!S.bq)});
- const w=$('#warn');w.hidden=!S.inc.length;if(S.inc.length)w.innerHTML=`⚠️ ${E(S.camps[S.inc[0].c].n)} greift an in ${ft((S.inc[0].end-Date.now())/1000)}`;
+ 
  const mb=$('#mutb');if(mb){mb.style.width=(S.mut/mutMax()*100)+'%';$('#mutt').textContent=Math.floor(S.mut)+' / '+mutMax()}
 }
 function eff(k,l){const b=B[k];if(b.r)return rate(k,l).toFixed(1)+'/s';
@@ -242,14 +252,22 @@ function eff(k,l){const b=B[k];if(b.r)return rate(k,l).toFixed(1)+'/s';
 const chips=c=>c.map((v,i)=>`<span class="ch">${RN[RK[i]]} ${v}</span>`).join('');
 const hb=n=>`<b class="hd" style="font-size:20px">${n}</b>`;
 
+const tbar=(label,st,en,cls='',tmp='')=>`<div class="tb ${cls}" data-s="${Math.round(st)}" data-e="${Math.round(en)}" ${tmp?'data-x="1"':''}><i></i><span>${label} · <b></b></span></div>`;
+function hdrTimers(){const o=[];
+ if(S.bq)o.push(tbar(`🔨 ${B[S.bq.k].n} → Stufe ${S.b[S.bq.k]+1}`,S.bq.start||S.bq.end-bt(S.bq.k)*1000,S.bq.end,'c'));
+ if(S.q)o.push(tbar('📜 '+E(S.q.t),S.q.start||S.q.end-S.q.dur*1000,S.q.end,'c'));
+ S.inc.forEach(a=>o.push(tbar(`⚠️ ${E(S.camps[a.c].n)} greift an`,a.end-60000,a.end,'r c')));
+ S.tq.forEach(t=>o.push(tbar(`🪖 ${t.n}× ${U[t.u].n}`,t.st||t.end-t.n*ut(t.u)*1000,t.end,'g c')));
+ S.at.forEach(a=>o.push(tbar(`⚔️ ${E(S.camps[a.c].n)}`,a.st||a.end-dist(a.c)*2000,a.end,'b c')));
+ $('#tm').innerHTML=o.slice(0,4).join('')}
 function vDorf(){
  let h=Object.keys(B).map(k=>{const b=B[k],lv=S.b[k],c=bc(k),busy=S.bq&&S.bq.k===k;
  return `<div class="card"><div class="row"><span class="ic">${b.ic}</span><div class="g">${hb(b.n)} <span class="t">Stufe ${lv}</span><p>${b.d}</p><p class="e">${eff(k,lv)} → ${eff(k,lv+1)}</p></div></div>
- <div class="row" style="margin-top:6px">${busy?`🔨 Wird gebaut: <b data-cd="${S.bq.end}"></b>`:`${chips(c)}<span class="t">⏱ ${ft(bt(k))}</span><button class="b" data-a="build" data-k="${k}" data-cost="${c}" data-bq="1">${lv?'Ausbauen':'Bauen'}</button>`}</div></div>`}).join('');
+ <div class="row" style="margin-top:6px">${busy?`${tbar(`🔨 Ausbau → Stufe ${lv+1}`,S.bq.start||S.bq.end-bt(k)*1000,S.bq.end)}`:`${chips(c)}<span class="t">⏱ ${ft(bt(k))}</span><button class="b" data-a="build" data-k="${k}" data-cost="${c}" data-bq="1">${lv?'Ausbauen':'Bauen'}</button>`}</div></div>`}).join('');
  h+=`<h2>Truppen</h2><p class="t">Bauern: ${pop()} / ${popMax()}</p>`+Object.keys(U).map(k=>{const u=U[k],ok=S.b.barr>=u.need;
   return `<div class="card"><div class="row"><span class="ic">${u.ic}</span><div class="g">${hb(u.n)} <span class="t">zu Hause: ${S.u[k]}</span><p>Angriff ${u.a} · Abwehr ${u.d} · Tragkraft ${u.cr}</p></div></div>
   <div class="row" style="margin-top:6px">${ok?`${chips(uc(k))}<span style="margin-left:auto" class="row">${[1,5].map(n=>`<button class="b s" data-a="train" data-u="${k}" data-n="${n}" data-cost="${uc(k,n)}">+${n}</button>`).join('')}</span>`:`<span class="t">🔒 Kaserne Stufe ${u.need} nötig</span>`}</div></div>`}).join('');
- if(S.tq.length)h+=`<div class="card"><h2>Im Drill</h2>${S.tq.map(t=>`<p>${t.n}× ${U[t.u].n} – <b data-cd="${t.end}"></b></p>`).join('')}</div>`;
+ if(S.tq.length)h+=`<div class="card"><h2>Im Drill</h2>${S.tq.map(t=>tbar(`🪖 ${t.n}× ${U[t.u].n}`,t.st||t.end-t.n*ut(t.u)*1000,t.end,'g')).join('')}</div>`;
  return h}
 
 const px=i=>[(PT[i][0]-160)*1.4+240,(PT[i][1]-150)*1.4+220];
@@ -265,8 +283,8 @@ function vKarte(){
  if(c.own)h+=`<p class="e">Erobert: +${(.3*1.3**sel).toFixed(1)} ${RN[RK[sel%3]]}/s</p></div></div></div>`;
  else h+=`<p>Verteidigung ${d} · Hin und zurück ${ft(dist(sel)*2)} · Beute ~${Math.round(70*1.6**sel)} je Rohstoff</p><p class="${armyAtk()>d?'e':''}">Deine Armee: ${armyAtk()} – ${armyAtk()>d?'gute Chancen':'lieber aufrüsten'}</p><div class="bar x"><i style="width:${Math.max(0,c.loy)}%"></i></div><p>Loyalität ${Math.max(0,c.loy)} % – bei 0 % wird das Dorf übernommen.</p></div></div>
  <div class="row" style="margin-top:6px"><button class="b" data-a="atk" data-c="${sel}" data-f="1">Alle schicken</button><button class="b s" data-a="atk" data-c="${sel}" data-f=".5">Hälfte</button></div></div>`;
- if(S.at.length)h+=`<div class="card"><h2>Unterwegs</h2>${S.at.map(a=>`<p>→ ${E(S.camps[a.c].n)}: zurück in <b data-cd="${a.end}"></b></p>`).join('')}</div>`;
- if(S.inc.length)h+=`<div class="card"><h2>Angriff naht</h2>${S.inc.map(a=>`<p>⚠️ ${E(S.camps[a.c].n)} (Stärke ${a.p}) – in <b data-cd="${a.end}"></b>. Deine Abwehr: ${homeDef()}</p>`).join('')}</div>`;
+ if(S.at.length)h+=`<div class="card"><h2>Unterwegs</h2>${S.at.map(a=>tbar(`⚔️ ${E(S.camps[a.c].n)} (zurück in)`,a.st||a.end-dist(a.c)*2000,a.end,'b')).join('')}</div>`;
+ if(S.inc.length)h+=`<div class="card"><h2>Angriff naht</h2>${S.inc.map(a=>tbar(`⚠️ ${E(S.camps[a.c].n)} greift an`,a.end-60000,a.end,'r')+`<p>Angriffsstärke ${a.p} gegen deine Abwehr ${homeDef()}</p>`).join('')}</div>`;
  return h}
 
 const nm=it=>`<span style="color:${RC[it.r||0]}">${E(it.n)}</span>`;
@@ -283,13 +301,13 @@ function vHeld(){const h=S.hero,c=CL[h.c],dm=dmul(),fl=Date.now()<S.fire,ef=Obje
  return `<div class="card"><div class="row"><span class="ic">${c.ic}</span><div class="g">${hb(E(h.n))} <span class="t">${c.n}, Stufe ${h.lv}</span><div class="bar x"><i style="width:${h.xp/(h.lv*50)*100}%"></i></div><p>${h.xp} / ${h.lv*50} EP</p></div></div><p style="margin-top:4px">⚔️ Angriff ${hAtk()} · ❤️ Leben ${hHp()} · 🛡️ Abwehr ${hDef()} · 🍀 Glück ${luck()}</p><div class="row" style="margin-top:6px"><button class="b" data-a="inv">🎒 Inventar öffnen</button></div></div>
  <div class="card"><h2>Überleben</h2>${[['💧','bw','wt'],['🍖','bf','fd'],['⚡','be','en'],['🔥','bm','wm']].map(x=>`<div class="row"><span>${x[0]}</span><div class="g bar ${x[1]}"><i data-bar="${x[2]}"></i></div></div>`).join('')}
  <p class="${dm<1?'':'e'}">${dm<1?`😩 Geschwächt: Angriff ×${dm.toFixed(2)}, Mut-Erholung halbiert. Sterben kannst du nicht.`:'😊 Gut versorgt'}</p><p>${night()?'🌙 Nacht: Es wird kalt, Monster sind 20 % stärker. Ein Feuer wärmt dich und lässt dich ausruhen.':'☀️ Tag: Du wärmst dich langsam auf.'}</p>
- <div class="row" style="margin-top:6px"><button class="b s" data-a="well">💧 Brunnen</button><button class="b s" data-a="fire">🔥 Feuer${fl?' brennt':' 🪵15'}</button><button class="b s" data-a="craft" data-id="bread" data-cost="25,5,0">🍞 Brot</button><button class="b s" data-a="craft" data-id="stew" data-cost="40,20,0">🍲 Eintopf</button><button class="b s" data-a="craft" data-id="tea" data-cost="10,0,0">🍵 Tee</button></div><p>Feuer brennt 2 Minuten. Brunnen: gratis, 20 s Pause. Brot 🪵25 🧱5, Eintopf 🪵40 🧱20, Tee 🪵10.</p></div>
+ ${Date.now()<S.fire?tbar('🔥 Lagerfeuer brennt',S.fire-120000,S.fire,'o',1):''}${Date.now()<S.well?tbar('💧 Brunnen wieder bereit',S.well-20000,S.well,'b',1):''}<div class="row" style="margin-top:6px"><button class="b s" data-a="well">💧 Brunnen</button><button class="b s" data-a="fire">🔥 Feuer${fl?' brennt':' 🪵15'}</button><button class="b s" data-a="craft" data-id="bread" data-cost="25,5,0">🍞 Brot</button><button class="b s" data-a="craft" data-id="stew" data-cost="40,20,0">🍲 Eintopf</button><button class="b s" data-a="craft" data-id="tea" data-cost="10,0,0">🍵 Tee</button></div><p>Feuer brennt 2 Minuten. Brunnen: gratis, 20 s Pause. Brot 🪵25 🧱5, Eintopf 🪵40 🧱20, Tee 🪵10.</p></div>
  <div class="card"><h2>Aktive Effekte</h2>${ef.length?ef.map(x=>`<p style="color:var(--ink)">✦ ${FX[x[0]][0]} +${Math.round(x[1])} %</p>`).join(''):'<p>Keine. Epische, legendäre und Set-Items haben Spezialeffekte.</p>'}${Object.keys(SETS).map(q=>{const n=setCnt(q);return n?`<p style="color:${RC[4]}">Set ${SETS[q].n}: ${n}/3</p>`:''}).join('')}</div>`}
 function vAbenteuer(){
  let o=`<div class="card"><p>Mut <b id="mutt"></b> (jeder Kampf kostet 8)</p><div class="bar"><i id="mutb"></i></div></div><div id="fight"></div><h2>Monster in der Nähe</h2>${night()?'<p class="t">🌙 Nachts sind Monster 20 % stärker.</p>':''}`;
  o+=S.enc.map((e,i)=>{const m=MS[e.m],g=GT[m.g];return `<div class="card"><div class="row"><span class="ic">${m.ic}</span><div class="g">${hb(m.n)} <span class="t">Stufe ${e.l}</span><p>${g.ic} ${g.n} · dein Widerstand ${Math.round(res(m.g)*100)} %</p></div><button class="b" data-a="fight" data-i="${i}" ${F||S.mut<8?'disabled':''}>Kämpfen</button></div></div>`}).join('');
  o+='<h2>Aushang</h2>';
- o+=S.q?`<div class="card"><b>${E(S.q.t)}</b><div class="bar x"><i class="qb"></i></div><p>Fertig in <b data-cd="${S.q.end}"></b> · ${S.q.xp} EP</p></div>`:S.qo.map((q,i)=>`<div class="card"><b>${q.t}</b><div class="row" style="margin-top:6px"><span class="ch">💪 ${q.mut}</span><span class="ch">⏱ ${ft(q.dur)}</span><span class="ch">${q.xp} EP</span><span class="ch">${RN[q.res]} ${q.amt}</span><button class="b" data-a="quest" data-i="${i}">Annehmen</button></div></div>`).join('');
+ o+=S.q?`<div class="card"><b>${E(S.q.t)}</b>${tbar('📜 Quest läuft',S.q.start||S.q.end-S.q.dur*1000,S.q.end)}<p>Belohnung: ${S.q.xp} EP</p></div>`:S.qo.map((q,i)=>`<div class="card"><b>${q.t}</b><div class="row" style="margin-top:6px"><span class="ch">💪 ${q.mut}</span><span class="ch">⏱ ${ft(q.dur)}</span><span class="ch">${q.xp} EP</span><span class="ch">${RN[q.res]} ${q.amt}</span><button class="b" data-a="quest" data-i="${i}">Annehmen</button></div></div>`).join('');
  return o}
 
 function vMehr(){const A=['Aus','Selten','Normal','Oft'];
@@ -312,6 +330,7 @@ function render(){
  $('#view').innerHTML={dorf:vDorf,karte:vKarte,held:vHeld,abenteuer:vAbenteuer,mehr:vMehr}[tab]();
  if(tab==='abenteuer')drawFight();
  $('#invp').hidden=!Iv;$('#invbtn').hidden=false;if(Iv)$('#invc').innerHTML=vEquip();
+ hdrTimers();
  modal();live()}
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const d=b.dataset,now=Date.now();
@@ -321,10 +340,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   S.inv=[genGem('fire',1),mkFood('bread'),mkFood('water')];S.qo=genQ();S.enc=genEnc();lg(`🍺 ${n} betritt das Dorf. Der Wirt schaut kurz auf und zapft weiter.`);tab='dorf';break}
  case 'tab':tab=d.t;armed=false;G=null;break;
  case 'sel':if(moved)return;sel=+d.c;break;
- case 'build':{const k=d.k,c=bc(k);if(S.bq||!afford(c))return;pay(c);S.bq={k,end:now+bt(k)*1000};break}
- case 'train':{const k=d.u,n=+d.n,c=uc(k,n);if(!afford(c))return;if(pop()+n>popMax()){toast('Zu wenig Bauern – bau den Bauernhof aus.');return}pay(c);S.tq.push({u:k,n,end:now+n*ut(k)*1000});break}
+ case 'build':{const k=d.k,c=bc(k);if(S.bq||!afford(c))return;pay(c);S.bq={k,start:now,end:now+bt(k)*1000};break}
+ case 'train':{const k=d.u,n=+d.n,c=uc(k,n);if(!afford(c))return;if(pop()+n>popMax()){toast('Zu wenig Bauern – bau den Bauernhof aus.');return}pay(c);S.tq.push({u:k,n,st:now,end:now+n*ut(k)*1000});break}
  case 'atk':{if(S.camps[+d.c].own){toast('Dieses Dorf gehört dir schon.');return}const f=+d.f,u={};let t=0;for(const k in U){u[k]=Math.floor(S.u[k]*f);t+=u[k]}
-  if(!t){toast('Keine Truppen zu Hause.');return}for(const k in U)S.u[k]-=u[k];S.at.push({c:+d.c,u,end:now+dist(+d.c)*2000});toast('Truppen marschieren!');break}
+  if(!t){toast('Keine Truppen zu Hause.');return}for(const k in U)S.u[k]-=u[k];S.at.push({c:+d.c,u,st:now,end:now+dist(+d.c)*2000});toast('Truppen marschieren!');break}
  case 'fight':if(F||S.mut<8)return;startFight(+d.i);break;
  case 'fdone':F=null;break;
  case 'quest':{const q=S.qo[+d.i];if(S.q)return;if(S.mut<q.mut){toast('Zu wenig Mut. Trink erst mal was.');return}S.mut-=q.mut;S.q=Object.assign({},q,{start:now,end:now+q.dur*1000});S.en=Math.max(0,S.en-10);break}
