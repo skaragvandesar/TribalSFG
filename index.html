@@ -44,6 +44,8 @@ input[type=text]{font:inherit;width:100%;padding:8px;border:3px solid var(--line
 input[type=range]{width:100%;accent-color:var(--acc)}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);border-radius:999px;padding:8px 16px;font-weight:800;max-width:80%;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
 #toast.on{opacity:1}
+#tip{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;max-width:420px;margin:0 auto;background:var(--panel);color:var(--ink);border:3px solid var(--line);border-radius:14px;box-shadow:4px 4px 0 var(--line);padding:10px 12px;font-size:14px}
+#tip[hidden]{display:none}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 #modal[hidden],#invp[hidden]{display:none}
 .mbox{background:var(--panel);border:4px solid var(--line);border-radius:18px;box-shadow:6px 6px 0 var(--line);padding:20px;text-align:center;max-width:340px;width:100%}
@@ -65,7 +67,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 </header>
 <main id="view"></main>
 <div id="modal" hidden><div class="mbox" id="mbox"></div></div><div id="invp" hidden><div class="r1" style="margin-bottom:10px"><h1>Inventar</h1><button class="b s" data-a="invx">Schließen ✕</button></div><div id="invc"></div></div><button id="invbtn" data-a="inv" aria-label="Inventar öffnen" hidden>🎒</button>
-<div id="toast" role="status" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite"></div><div id="tip" hidden></div>
 <script>
 const K='staemmchen_v2',$=s=>document.querySelector(s);
 const E=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -346,6 +348,23 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  save();render()});
 document.addEventListener('input',e=>{if(e.target.id==='diff'){S.diff=+e.target.value;$('#dl').textContent=S.diff+' %';save()}});
 
+const GL=[['🪵','Holz','Baumaterial. Der Holzfäller produziert es.'],['🧱','Lehm','Baumaterial aus der Lehmgrube.'],['⛓️','Eisen','Für Truppen und Gebäude. Kommt aus der Eisenmine.'],['📦','Speicher','Zeigt, wie viel von jedem Rohstoff maximal gelagert werden kann.'],
+['💧','Durst','Sinkt mit der Zeit. Brunnen, Wasser, Tee oder Eintopf füllen ihn auf.'],['🍖','Hunger','Sinkt mit der Zeit. Brot, Eintopf oder Wildbret füllen ihn auf.'],['⚡','Energie','Sinkt bei Kämpfen und Quests. Ein Lagerfeuer und manche Speisen füllen sie auf.'],
+['🔥','Wärme / Feuer','Als Überlebenswert: Wärme sinkt nachts, ein Lagerfeuer wärmt dich. Als Element: Feuer-Gegner und Feuer-Edelsteine (Widerstand).'],['☀️','Tag','Tagsüber wärmst du dich langsam auf.'],['🌙','Nacht','Nachts wird es kalt, und Monster sind 20 % stärker.'],
+['📜','Quest / Chronik','Aufträge vom Aushang und das Protokoll aller Ereignisse.'],['🎒','Inventar','Öffnet deinen Rucksack und deine Ausrüstung.'],['🏘️','Dorf','Gebäude ausbauen und Truppen ausbilden.'],['🗺️','Karte','Nachbardörfer ansehen, überfallen und übernehmen.'],['👹','Abenteuer','Automatische Monsterkämpfe und Quests.'],['⚙️','Mehr','Schwierigkeit, Überfälle und Chronik.'],
+['🍺','Taverne','Erhöht deinen maximalen Mut für Quests und Kämpfe.'],['💪','Mut','Wird für Quests und Kämpfe verbraucht und erholt sich mit der Zeit.'],['⏱','Dauer','So lange dauert die Aktion.'],['⏳','Langzeit-Quest','Dauert 30 bis 60 Minuten, gibt dafür mehr Belohnung.'],
+['🪓','Holzfäller / Axtschwinger','Gebäude für Holz, aber auch Truppe mit hohem Angriff und wenig Abwehr.'],['⛏️','Eisenmine','Produziert Eisen.'],['🌾','Bauernhof','Mehr Bauern, damit du mehr Truppen halten kannst.'],['🛡️','Kaserne / Abwehr','Schaltet Truppen frei. Bei Werten: Abwehr bzw. Rüstung.'],
+['🔱','Speerträger','Gute Abwehr, schwacher Angriff.'],['🗡️','Schwert','Schwertkämpfer oder Waffe. Erhöht den Angriff.'],['⚔️','Angriff','Dein Kampfwert. Auch das Symbol der Klasse Krieger.'],['🔮','Magier','Bekommt 50 % mehr Erfahrung aus Quests.'],['🏹','Späher','Erbeutet 30 % mehr bei Raubzügen.'],
+['❄️','Frost','Frost-Gegner. Frost-Edelsteine geben Frost-Widerstand.'],['☠️','Gift','Gift-Gegner. Gift-Edelsteine geben Gift-Widerstand.'],['💎','Edelstein','Wird in einen Sockel gesetzt und gibt Widerstand gegen einen Gegnertyp.'],['❤️','Leben','Deine Lebenspunkte in Kämpfen.'],['🍀','Glück','Erhöht Drop-Chancen und die Chance auf bessere Items.'],
+['🏰','Gegnerisches Dorf','Kann überfallen und bei 0 % Loyalität übernommen werden.'],['🏠','Dein Dorf','Hier bist du zu Hause.'],['🚩','Erobertes Dorf','Gehört dir und liefert Rohstoffe.'],['✦','Spezialeffekt','Besonderer Bonus auf epischen, legendären und Set-Items.'],['★','Legendär','Legendäre Items haben zwei starke Effekte.'],['📿','Amulett','Gibt Glück und Sockel für Edelsteine.'],['◯','Sockel','Freier Platz für einen Edelstein.'],
+['💥','Kritischer Treffer','Macht 80 % mehr Schaden.'],['🏆','Sieg','Du hast gewonnen und Belohnung erhalten.'],['😵','Bewusstlos','Du hast verloren. Du verlierst nur etwas Durst und Hunger, sterben kannst du nicht.'],['😩','Geschwächt','Zu niedrige Überlebenswerte senken deinen Angriff.'],['😊','Gut versorgt','Alle Überlebenswerte sind in Ordnung.'],
+['🍞','Brot','Stillt Hunger.'],['🍲','Eintopf','Stillt viel Hunger und wärmt etwas.'],['🍯','Met','Stillt Durst und gibt Mut.'],['🍵','Kräutertee','Stillt Durst, wärmt und gibt Energie.'],['⚠️','Angriff naht','Ein Gegner überfällt bald dein Dorf. Deine Truppen und dein Held verteidigen.'],['🔨','Bauarbeiten','Ein Gebäude wird gerade ausgebaut.'],['🎁','Truhe','Belohnung beim Stufenaufstieg.'],['🪖','Truppen','Ausgebildete Soldaten.'],['🎉','Stufenaufstieg','Dein Held ist eine Stufe aufgestiegen.']];
+const GR=GL.map(([k,t,x])=>[new RegExp(k.replace(/\uFE0F/g,'')+'\uFE0F?','g'),t,x,k]);
+function symAt(x,y){let n,o;if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r){n=r.startContainer;o=r.startOffset}}else if(document.caretPositionFromPoint){const q=document.caretPositionFromPoint(x,y);if(q){n=q.offsetNode;o=q.offset}}
+ if(!n||n.nodeType!==3)return null;const t=n.data;for(const g of GR){g[0].lastIndex=0;let m;while((m=g[0].exec(t))){if(o>=m.index&&o<=m.index+m[0].length)return g}}return null}
+let tipT;function showTip(g){const e=$('#tip');e.innerHTML=`<span style="font-size:26px">${g[3]}</span> <b class="hd" style="font-size:20px">${g[1]}</b><br>${g[2]}`;e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>e.hidden=true,7000)}
+document.addEventListener('click',e=>{const tp=$('#tip');if(!tp.hidden){tp.hidden=true;if(e.target.closest('#tip'))return}
+ if(e.target.closest('[data-a],input,#tip'))return;const g=symAt(e.clientX,e.clientY);if(g)showTip(g)});
 let pd=null;
 document.addEventListener('pointerdown',e=>{const m=e.target.closest('#map');if(m)pd={x:e.clientX,y:e.clientY,mx:mz.x,my:mz.y,m}});
 document.addEventListener('pointermove',e=>{if(!pd)return;const r=pd.m.getBoundingClientRect(),k=(480/mz.z)/r.width,dx=e.clientX-pd.x,dy=e.clientY-pd.y;if(Math.abs(dx)+Math.abs(dy)>8)moved=true;if(moved){mz.x=pd.mx-dx*k;mz.y=pd.my-dy*k;pd.m.setAttribute('viewBox',vb())}});
