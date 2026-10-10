@@ -10,8 +10,14 @@ const B={
  store:{n:'Speicher',ic:'📦',c:[60,50,20],d:'Mehr Platz für Zeug, das du eh nicht brauchst.'},
  farm:{n:'Bauernhof',ic:'🌾',c:[70,60,30],d:'Mehr Bauern, mehr hungrige Münder.'},
  barr:{n:'Kaserne',ic:'🛡️',c:[120,100,60],d:'Schaltet Truppen frei und bildet sie schneller aus.'},
- tav:{n:'Taverne',ic:'🍺',c:[100,80,40],d:'Mehr Mut für Abenteuer. Der Wirt schreibt an.'}};
-const U={sp:{n:'Speerträger',ic:'🔱',c:[50,30,20],a:8,d:14,t:6,cr:20,need:1,s:1,p:1},ax:{n:'Axtschwinger',ic:'🪓',c:[70,40,40],a:22,d:4,t:8,cr:10,need:2,s:.95,p:1},sw:{n:'Schwertkämpfer',ic:'🗡️',c:[40,50,70],a:14,d:10,t:10,cr:15,need:3,s:1.15,p:1},bw:{n:'Bogenschütze',ic:'🎯',c:[60,50,40],a:16,d:6,t:9,cr:12,need:4,s:1,p:1},rt:{n:'Reiter',ic:'🏇',c:[140,100,120],a:30,d:12,t:18,cr:40,need:6,s:.55,p:2},rr:{n:'Ritter',ic:'⚜️',c:[220,160,220],a:50,d:30,t:30,cr:30,need:8,s:.8,p:3}};
+ tav:{n:'Taverne',ic:'🍺',c:[100,80,40],d:'Mehr Mut für Abenteuer. Der Wirt schreibt an.'},
+ wall:{n:'Wall',ic:'⛰️',c:[80,100,30],d:'Erdwall und Palisaden: +5 % Abwehr je Stufe.'},
+ mauer:{n:'Mauer',ic:'🗼',c:[150,250,150],d:'Steinmauer: +8 % Abwehr und 4 Plätze für Bogenschützen je Stufe.'},
+ rally:{n:'Versammlungsplatz',ic:'🏛️',c:[300,300,200],d:'Hier wirbst du Fürsten an (ab Stufe 3 und Kaserne 10). Nur mit einem Fürsten lassen sich Dörfer übernehmen.'}};
+const REQ={mauer:['wall',3],rally:['barr',5]};
+const reqOk=k=>!REQ[k]||S.b[REQ[k][0]]>=REQ[k][1];
+const reqTxt=k=>reqOk(k)?'':`🔒 Benötigt ${B[REQ[k][0]].n} Stufe ${REQ[k][1]}`;
+const U={sp:{n:'Speerträger',ic:'🔱',c:[50,30,20],a:8,d:14,t:6,cr:20,need:1,s:1,p:1},ax:{n:'Axtschwinger',ic:'🪓',c:[70,40,40],a:22,d:4,t:8,cr:10,need:2,s:.95,p:1},sw:{n:'Schwertkämpfer',ic:'🗡️',c:[40,50,70],a:14,d:10,t:10,cr:15,need:3,s:1.15,p:1},bw:{n:'Bogenschütze',ic:'🎯',c:[60,50,40],a:16,d:6,t:9,cr:12,need:4,s:1,p:1},rt:{n:'Reiter',ic:'🏇',c:[140,100,120],a:30,d:12,t:18,cr:40,need:6,s:.55,p:2},rr:{n:'Ritter',ic:'⚜️',c:[220,160,220],a:50,d:30,t:30,cr:30,need:8,s:.8,p:3},fs:{n:'Fürst',ic:'👑',c:[3000,3000,3000],g:2,a:5,d:5,t:600,cr:0,need:10,s:3,p:5,lord:true}};
 const CL={K:{n:'Krieger',ic:'⚔️',d:'Haut erst, fragt später. Angriff +20 %.'},M:{n:'Magier',ic:'🔮',d:'Feuerbälle für Kleinigkeiten. Quest-Erfahrung +50 %.'},S:{n:'Späher',ic:'🏹',d:'Findet Münzen im Sofa. Beute +30 %.'}};
 const GT={fire:{n:'Feuer',ic:'🔥',c:'#d9532f'},frost:{n:'Frost',ic:'❄️',c:'#4aa3df'},poison:{n:'Gift',ic:'☠️',c:'#6fae3a'}};
 const RAR=['Gewöhnlich','Selten','Episch','Legendär','Set'],RC=['#8a7f6c','#3f74e8','#9a4fe0','#e07a10','#2f9e44'];
@@ -40,14 +46,14 @@ const BN={w:['Schwert','Streitkolben','Axt','Bratpfanne'],a:['Wams','Kettenhemd'
 const SLOT={w:'Waffe',a:'Rüstung',m:'Amulett'},SIC={w:'🗡️',a:'🛡️',m:'📿'};
 let S,tab='dorf',armed=false,tt,F=null,G=null,Mr=null,sel=0,Iv=false,ua=null,mz={x:240,y:220,z:1},moved=false;
 
-const SAVE_V=4;
+const SAVE_V=5;
 let impT='',expT='';
-const fresh=()=>({v:SAVE_V,lastExp:0,t:Date.now(),r:{h:150,l:150,e:100},b:{wood:1,clay:1,iron:1,store:1,farm:1,barr:0,tav:0},u:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0},bq:null,tq:[],at:[],inc:[],q:null,qo:[],enc:[],mut:60,wt:100,fd:100,en:100,wm:100,fire:0,well:0,diff:100,aggr:2,nat:1200,rq:[],reports:[],coin:{b:0,s:0,g:0},dust:0,rep:50,nw:Date.now()+300000,hero:null,eq:{w:null,a:null,m:null},inv:[],lvq:[],camps:CN.map(([n,g],i)=>({n,g,w:0,loy:100,own:false,lv:Math.min(3,i>>1),rel:'n',tr:{u:0,t:0},cd:0,pw:newPw(i,Math.min(3,i>>1))})),ns:Date.now()+1800000,ng:Date.now()+900000,auto:{eat:false,q:false,rec:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0}},bqq:[],log:[]});
+const fresh=()=>({v:SAVE_V,lastExp:0,t:Date.now(),r:{h:150,l:150,e:100},b:{wood:1,clay:1,iron:1,store:1,farm:1,barr:0,tav:0,wall:0,mauer:0,rally:0},u:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0,fs:0},bq:null,tq:[],at:[],inc:[],q:null,qo:[],enc:[],mut:60,wt:100,fd:100,en:100,wm:100,fire:0,well:0,diff:100,aggr:2,nat:1200,wp:0,rq:[],reports:[],coin:{b:0,s:0,g:0},dust:0,rep:50,nw:Date.now()+300000,hero:null,eq:{w:null,a:null,m:null},inv:[],lvq:[],camps:CN.map(([n,g],i)=>({n,g,w:0,loy:100,own:false,lv:Math.min(3,i>>1),rel:'n',tr:{u:0,t:0},cd:0,wl:0,pw:newPw(i,Math.min(3,i>>1))})),ns:Date.now()+1800000,ng:Date.now()+900000,auto:{eat:false,q:false,rec:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0,fs:0}},bqq:[],log:[]});
 /* Spielstand: Version, Zusammenführen mit Standardwerten und Migration.
    Neue Spielfunktionen: Standardwerte in fresh() ergänzen. Nur bei Umbauten bestehender Daten SAVE_V erhöhen und in migrate() einen Schritt ergänzen. */
 function merge(base,inc){if(inc===undefined||inc===null)return base;if(base===null||typeof base!=='object'||Array.isArray(base))return inc;const o=Object.assign({},base);for(const k in inc)o[k]=(k in base)?merge(base[k],inc[k]):inc[k];return o}
 function migrate(d){const v=d.v||1;let s=merge(fresh(),d);
- s.camps=s.camps.map((c,i)=>{c=Object.assign({g:'fire',w:0,loy:100,own:false,lv:Math.min(3,i>>1),rel:'n',tr:{u:0,t:0},cd:0},c);if(c.pw==null)c.pw=Math.round(30*1.75**tier(i)*(1+(c.lv|0)*.12)*1.12**(c.w|0));return c});
+ s.camps=s.camps.map((c,i)=>{c=Object.assign({g:'fire',w:0,loy:100,own:false,lv:Math.min(3,i>>1),rel:'n',tr:{u:0,t:0},cd:0,wl:0},c);if(c.pw==null)c.pw=Math.round(30*1.75**tier(i)*(1+(c.lv|0)*.12)*1.12**(c.w|0));return c});
  /* Beispiel für ein künftiges Update: if(v<4){ s.neuesFeld=...; } */
  s.v=SAVE_V;return s}
 const exp=()=>({game:'castle-day',v:SAVE_V,exported:new Date().toISOString(),data:S});
@@ -64,7 +70,10 @@ function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
 
 const D=()=>S.diff/100;
 const dmul=()=>Math.max(.5,1-['wt','fd','en','wm'].reduce((a,k)=>a+(S[k]<=0?.15:S[k]<25?.08:0),0));
-const night=()=>((Date.now()/1000)%1800)/1800>=.6;
+const PH=[[6,'dawn','🌅','Morgen'],[10,'day','☀️','Tag'],[17,'dusk','🌇','Abend'],[20,'night','🌙','Nacht']];
+function tod(){const h=(Date.now()/1000%1800)/1800*24;let i=3;if(h>=6)for(let k=0;k<4;k++)if(h>=PH[k][0])i=k;
+ const nx=PH[(i+1)%4],nb=nx[0]>h?nx[0]:nx[0]+24;return{key:PH[i][1],icon:PH[i][2],name:PH[i][3],h,nextName:nx[3],secs:(nb-h)*75}}
+const night=()=>tod().key==='night';
 const hAtk=()=>Math.round((6+S.hero.lv*3+(S.eq.w?S.eq.w.v:0))*dmul()*(S.hero.c==='K'?1.2:1)*(1+fx('atkp')/100));
 const hHp=()=>60+S.hero.lv*12+(S.eq.a?S.eq.a.v*3:0);
 const hDef=()=>S.hero.lv*2+(S.eq.a?S.eq.a.v:0);
@@ -79,13 +88,13 @@ const bc=k=>B[k].c.map(x=>Math.round(x*1.5**S.b[k]));
 const bt=k=>Math.round(10*SP.build*1.45**S.b[k]);
 const uc=(k,n=1)=>U[k].c.map(x=>x*n);
 const ut=k=>U[k].t*SP.train*0.92**Math.max(0,S.b.barr-1);
-const campDef=i=>Math.round(S.camps[i].pw*D());
+const campDef=i=>Math.round(S.camps[i].pw*(1+(S.camps[i].wl|0)*.06)*D());
 const trSec=(i,u)=>dist(i)*SP.travel*Math.max(0,...Object.keys(u).filter(k=>u[k]>0).map(k=>U[k].s));
 const dist=i=>6+Math.round(Math.hypot(PT[i][0]-160,PT[i][1]-150)*.25);
 const owned=()=>S.camps.filter(c=>c.own).length;
 const armyAtk=()=>Object.keys(U).reduce((a,k)=>a+S.u[k]*U[k].a,0)+hAtk();
-const homeDef=()=>Math.round((Object.keys(U).reduce((a,k)=>a+S.u[k]*U[k].d,0)+hDef())*((S.wt<=0||S.fd<=0)?.5:1)*(S.en<=0?.7:1));
-const pop=()=>Object.keys(U).reduce((a,k)=>a+S.u[k]*U[k].p,0)+S.tq.reduce((a,t)=>a+t.n*U[t.u].p,0)+S.at.reduce((a,x)=>a+Object.keys(x.u).reduce((p,k)=>p+x.u[k]*U[k].p,0),0);
+const homeDef=()=>Math.round((Object.keys(U).reduce((a,k)=>a+S.u[k]*U[k].d,0)+hDef()+S.wp*U.bw.a*1.5)*(1+S.b.wall*.05+S.b.mauer*.08)*((S.wt<=0||S.fd<=0)?.5:1)*(S.en<=0?.7:1));
+const pop=()=>S.wp*U.bw.p+Object.keys(U).reduce((a,k)=>a+S.u[k]*U[k].p,0)+S.tq.reduce((a,t)=>a+t.n*U[t.u].p,0)+S.at.reduce((a,x)=>a+Object.keys(x.u).reduce((p,k)=>p+x.u[k]*U[k].p,0),0);
 const afford=c=>S.r.h>=c[0]&&S.r.l>=c[1]&&S.r.e>=c[2];
 const pay=c=>{S.r.h-=c[0];S.r.l-=c[1];S.r.e-=c[2]};
 const lg=t=>{S.log.unshift(t);S.log.length=Math.min(S.log.length,40)};
@@ -146,15 +155,16 @@ function drawFight(){const e=$('#fight');if(!e||!F)return;const v=F.ev[F.i];
 
 function report(t,ok,lines){const r={t,ok,lines,at:Date.now()};S.reports.unshift(r);S.reports.length=Math.min(S.reports.length,20);S.rq.push(r)}
 function resolve(a){
- const c=S.camps[a.c],H=hAtk();let atk=H,n=0;const L=[`Ziel: ${c.n} (${LV[c.lv|0][1]} ${LV[c.lv|0][0]}, ${GT[c.g].ic} ${GT[c.g].n})`];
+ const c=S.camps[a.c],H=hAtk(),lord=(a.u.fs||0)>0;let atk=H,n=0;const L=[`Ziel: ${c.n} (${LV[c.lv|0][1]} ${LV[c.lv|0][0]}, ${GT[c.g].ic} ${GT[c.g].n})`];
  for(const k in a.u){if(!a.u[k])continue;const v=a.u[k]*U[k].a;atk+=v;n+=a.u[k];L.push(`${U[k].ic} ${a.u[k]}× ${U[k].n}: Angriff ${v}`)}
  L.push(`${CL[S.hero.c].ic} ${S.hero.n}: Angriff ${H}`);
  const def=campDef(a.c),win=atk>def,r=res(c.g),f=(win?Math.min(.8,.6*def/atk):.75)*(1-r);let loss=0,carry=0;const lr=[];
  for(const k in a.u){const l=Math.round(a.u[k]*f);loss+=l;S.u[k]+=a.u[k]-l;carry+=(a.u[k]-l)*U[k].cr;if(l)lr.push(`${U[k].ic} ${l}`)}
- L.push(`Gesamtangriff ${atk} gegen Verteidigung ${def}.`,`${GT[c.g].ic}-Widerstand ${Math.round(r*100)} %: senkt deine Verluste.`);
+ if(lord&&a.u.fs-Math.round(a.u.fs*f)<=0)L.push('⚰️ Der Fürst ist gefallen.');L.push(`Gesamtangriff ${atk} gegen Verteidigung ${def}.`,`${GT[c.g].ic}-Widerstand ${Math.round(r*100)} %: senkt deine Verluste.`);
  if(win){const base=Math.round(70*1.6**tier(a.c)*(S.hero.c==='S'?1.3:1)*(1+fx('loot')/100)),each=Math.min(base,Math.floor(carry/3)),coin=2+Math.round(tier(a.c)*3),xp=10*(a.c+1);
-  RK.forEach(k=>addRes(k,each));addCoin({b:coin});c.w++;c.pw=Math.max(20,Math.round(c.pw*.8));c.loy-=atk>=def*1.5?50:34;gain(xp);
-  L.push('✅ Sieg!',`Beute: 🪵${each} 🧱${each} ⛓️${each} und ${coin} 🥉.`,`Verluste: ${lr.join(' · ')||'keine'}.`,'Die Verteidiger des Dorfes sind geschwächt (Stärke −20 %).',`Loyalität von ${c.n}: ${Math.max(0,c.loy)} %.`,`${S.hero.n} erhält ca. ${xp} EP.`);
+  RK.forEach(k=>addRes(k,each));addCoin({b:coin});c.w++;c.pw=Math.max(20,Math.round(c.pw*.8));gain(xp);
+  L.push('✅ Sieg!',`Beute: 🪵${each} 🧱${each} ⛓️${each} und ${coin} 🥉.`,`Verluste: ${lr.join(' · ')||'keine'}.`,'Die Verteidiger des Dorfes sind geschwächt (Stärke −20 %).',`${S.hero.n} erhält ca. ${xp} EP.`);
+  if(lord){const cut=25+R(11);c.loy-=cut;c.wl=(c.wl|0)+2;c.pw=Math.round(c.pw*1.1);L.push(`👑 Der Fürst erschüttert die Herrschaft: Loyalität −${cut} % (jetzt ${Math.max(0,c.loy)} %).`,'Das Dorf rüstet nach: Wälle +2, die Verteidigung wächst.')}
   if(c.loy<=0){c.own=true;c.rel='n';gain(30*(a.c+1));L.push(`🚩 ${c.n} ist erobert und liefert nun Rohstoffe.`)}
   lg(`✅ ${P(WIN).replace('%c',c.n)}`);toast('Sieg bei '+c.n+'!')}
  else{gain(2);L.push('❌ Niederlage.',`Verluste: ${lr.join(' · ')||'keine'} (${loss} von ${n}).`);lg(`❌ ${P(LOSE).replace('%c',c.n)}`);toast('Niederlage bei '+c.n)}
@@ -163,7 +173,7 @@ function incoming(a){const c=S.camps[a.c],r=res(c.g),pw=Math.round(a.p*(1-r)),df
  const tr=Object.keys(U).filter(k=>S.u[k]>0).map(k=>`${U[k].ic} ${S.u[k]}× → ${S.u[k]*U[k].d}`);
  const L=[`Angreifer: ${c.n} (${GT[c.g].ic} ${GT[c.g].n}${c.rel==='war'?', im Krieg mit dir':''})`,`Angriffsstärke ${a.p}${r?`, nach deinem ${Math.round(r*100)} % Widerstand ${pw}`:''}.`,`Verteidiger: ${tr.length?tr.join(', '):'keine Truppen'} · ${CL[S.hero.c].ic} Held ${hDef()}`];
  if(S.wt<=0||S.fd<=0)L.push('😩 Durst/Hunger: Verteidigung halbiert.');if(S.en<=0)L.push('😴 Erschöpft: Verteidigung −30 %.');
- L.push(`Deine Abwehr gesamt: ${df}.`);
+ if(S.b.wall||S.b.mauer)L.push(`Wall und Mauer: +${S.b.wall*5+S.b.mauer*8} % Abwehr.`);L.push(`Deine Abwehr gesamt: ${df}.`);const wl0=S.wp,wlr=pw>df?.4:.15;if(wl0>0){const al=Math.min(wl0,Math.round(wl0*wlr+Math.random()*.9));S.wp-=al;L.push(`🗼 ${wl0} Bogenschützen kämpften auf der Mauer, ${al} gefallen, ${S.wp} noch auf den Zinnen. Gefallene Plätze musst du im Dorf-Tab neu besetzen.`)}
  if(pw>df){RK.forEach(k=>{S.r[k]=Math.floor(S.r[k]*.8)});let l=0;const lr=[];for(const k in U){const x=Math.round(S.u[k]*.25);S.u[k]-=x;l+=x;if(x)lr.push(`${U[k].ic} ${x}`)}
   L.push('❌ Der Überfall gelingt.','20 % deiner Rohstoffe wurden geplündert.',`Verluste: ${lr.join(' · ')||'keine'}.`);lg(`🔥 ${c.n} hat dich überfallen!`);toast('Überfall von '+c.n+'!');report('❌ Überfall von '+c.n,false,L)}
  else{gain(5+a.c*2);c.pw=Math.max(20,Math.round(c.pw*.9));L.push('🛡️ Du wehrst den Angriff ab!',`Die Angreifer verlieren Stärke (−10 %), ${S.hero.n} erhält Erfahrung.`);lg(`🛡️ Überfall von ${c.n} abgewehrt!`);toast('Überfall abgewehrt!');report('🛡️ Abwehr: '+c.n,true,L)}}
@@ -177,13 +187,13 @@ function aiWar(now){for(let n=0;n<2&&now>=S.nw;n++){S.nw+=240000+R(240000);const
  if(A>T){t.pw=Math.max(20,Math.round(t.pw*.82));a.pw=Math.round(a.pw*1.06);lg(`⚔️ ${a.n} überfällt ${t.n} und plündert es aus.`)}else{a.pw=Math.max(20,Math.round(a.pw*.92));lg(`🛡️ ${t.n} wehrt einen Angriff von ${a.n} ab.`)}}
  if(now>S.nw+3600000)S.nw=now+300000;return false}
 function devTick(now){let ch=false;
- for(let n=0;n<3&&now>=S.ng;n++){S.ng+=900000;S.camps.forEach(x=>{if(!x.own)x.pw=Math.round(x.pw*1.03)});const c=S.camps.filter(c=>!c.own&&c.lv<4);if(c.length){const v=P(c);v.lv++;v.pw=Math.round(v.pw*1.15);lg(`📈 ${v.n} ist gewachsen: jetzt ${LV[v.lv][1]} ${LV[v.lv][0]}.`);ch=true}}
+ for(let n=0;n<3&&now>=S.ng;n++){S.ng+=900000;S.camps.forEach(x=>{if(!x.own){x.pw=Math.round(x.pw*1.03);x.loy=Math.min(100,x.loy+5);if(Math.random()<.5)x.wl=Math.min(12,(x.wl|0)+1)}});const c=S.camps.filter(c=>!c.own&&c.lv<4);if(c.length){const v=P(c);v.lv++;v.pw=Math.round(v.pw*1.15);lg(`📈 ${v.n} ist gewachsen: jetzt ${LV[v.lv][1]} ${LV[v.lv][0]}.`);ch=true}}
  if(now>S.ng+3600000)S.ng=now+900000;
- for(let n=0;n<3&&now>=S.ns;n++){S.ns+=1800000;if(S.camps.length<PT.length){const g=P(Object.keys(GT));let nm;do{nm=P(NP)+P(NS)}while(S.camps.some(c=>c.n===nm));S.camps.push({n:nm,g,w:0,loy:100,own:false,lv:0,rel:'n',tr:{u:0,t:0},cd:0,pw:newPw(S.camps.length,0)});lg(`🗺️ Neues Dorf entdeckt: ${nm}.`);toast('🗺️ Neues Dorf: '+nm);ch=true}}
+ for(let n=0;n<3&&now>=S.ns;n++){S.ns+=1800000;if(S.camps.length<PT.length){const g=P(Object.keys(GT));let nm;do{nm=P(NP)+P(NS)}while(S.camps.some(c=>c.n===nm));S.camps.push({n:nm,g,w:0,loy:100,own:false,lv:0,rel:'n',tr:{u:0,t:0},cd:0,wl:0,pw:newPw(S.camps.length,0)});lg(`🗺️ Neues Dorf entdeckt: ${nm}.`);toast('🗺️ Neues Dorf: '+nm);ch=true}}
  if(now>S.ns+3600000)S.ns=now+1800000;return ch}
 function autoTick(now){let ch=false;const A=S.auto;
- if(!S.bq&&S.bqq.length){const k=S.bqq[0],c=bc(k);if(afford(c)){pay(c);S.bq={k,start:now,end:now+bt(k)*1000};S.bqq.shift();lg(`🤖 Bauschleife: ${B[k].n} wird ausgebaut.`);ch=true}}
- for(const k in U){const tgt=A.rec[k]||0;if(!tgt||S.b.barr<U[k].need||S.tq.length>=3)continue;
+ if(!S.bq&&S.bqq.length){const k=S.bqq[0],c=bc(k);if(!reqOk(k)){S.bqq.shift();lg(`🤖 ${B[k].n} aus der Schleife entfernt: ${reqTxt(k)}.`);ch=true}else if(afford(c)){pay(c);S.bq={k,start:now,end:now+bt(k)*1000};S.bqq.shift();lg(`🤖 Bauschleife: ${B[k].n} wird ausgebaut.`);ch=true}}
+ for(const k in U){const tgt=A.rec[k]||0;if(!tgt||U[k].lord||S.b.barr<U[k].need||S.tq.length>=3)continue;
   const have=S.u[k]+S.tq.filter(t=>t.u===k).reduce((a,t)=>a+t.n,0)+S.at.reduce((a,x)=>a+(x.u[k]||0),0),n=Math.min(5,tgt-have,Math.floor((popMax()-pop())/U[k].p));
   if(n>0&&afford(uc(k,n))){pay(uc(k,n));S.tq.push({u:k,n,st:now,end:now+n*ut(k)*1000});lg(`🤖 ${n}× ${U[k].n} in Ausbildung.`);ch=true}}
  if(A.eat){const use=f=>{const i=S.inv.findIndex(it=>it.k==='f'&&FD[it.id][f]>0);if(i<0)return false;const it=S.inv[i],d=FD[it.id];S.wt=Math.min(100,S.wt+d.w);S.fd=Math.min(100,S.fd+d.f);S.mut=Math.min(mutMax(),S.mut+d.mu);S.en=Math.min(100,S.en+(d.en||0));S.wm=Math.min(100,S.wm+(d.wm||0));S.inv.splice(i,1);lg(`🤖 ${it.n} verzehrt.`);return true};
@@ -216,8 +226,8 @@ function live(){
  if(!S.hero)return;
  RK.forEach(k=>$('#r'+k).textContent=Math.floor(S.r[k]));$('#cap').textContent=cap();
  document.querySelectorAll('.tb').forEach(e=>{const st=+e.dataset.s,en=+e.dataset.e,n=Date.now(),pc=Math.min(100,Math.max(0,(n-st)/(en-st)*100));if(e.dataset.x&&n>en){e.remove();return}e.firstChild.style.width=pc+'%';e.querySelector('b').textContent=ft((en-n)/1000)+' · '+Math.floor(pc)+' %'});
- const hm=Object.keys(U).reduce((a,k)=>a+S.u[k],0),ou=S.at.reduce((a,x)=>a+Object.values(x.u).reduce((p,q)=>p+q,0),0),tr2=S.tq.reduce((a,t)=>a+t.n,0);$('#army').textContent=`🪖 Im Dorf: ${hm} (${Object.keys(U).filter(k=>S.u[k]>0).map(k=>U[k].ic+' '+S.u[k]).join(' · ')||'–'}) · ⚔️ unterwegs: ${ou} · im Drill: ${tr2}`;
- const hh_=S.hero,nx=xpN(hh_.lv);$('#xpb').style.width=(hh_.xp/nx*100)+'%';$('#xpt').textContent=`EP ${hh_.xp}/${nx}`;$('#dn').textContent=night()?'🌙 Nacht':'☀️ Tag';
+ const hm=Object.keys(U).reduce((a,k)=>a+S.u[k],0),ou=S.at.reduce((a,x)=>a+Object.values(x.u).reduce((p,q)=>p+q,0),0),tr2=S.tq.reduce((a,t)=>a+t.n,0);$('#army').textContent=`🪖 Im Dorf: ${hm} (${Object.keys(U).filter(k=>S.u[k]>0).map(k=>U[k].ic+' '+S.u[k]).join(' · ')||'–'}) · ⚔️ unterwegs: ${ou} · im Drill: ${tr2}${S.wp?` · 🗼 ${S.wp} auf der Mauer`:''}`;
+ const hh_=S.hero,nx=xpN(hh_.lv);$('#xpb').style.width=(hh_.xp/nx*100)+'%';$('#xpt').textContent=`EP ${hh_.xp}/${nx}`;{const T=tod(),hh=Math.floor(T.h),mm=Math.floor((T.h-hh)*60);$('#dn').textContent=`${T.icon} ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')} · ${T.nextName} in ${ft(T.secs)}`;document.body.dataset.tod=T.key}
  
  document.querySelectorAll('[data-bar]').forEach(e=>e.style.width=Math.max(0,S[e.dataset.bar])+'%');
  document.querySelectorAll('[data-cd]').forEach(e=>e.textContent=ft((+e.dataset.cd-Date.now())/1000));
@@ -227,7 +237,7 @@ function live(){
 }
 function eff(k,l){const b=B[k];if(b.r)return rate(k,l).toFixed(1)+'/s';
  if(k==='store')return cap(l)+' Platz';if(k==='farm')return popMax(l)+' Bauern';
- if(k==='barr')return l?Math.round((1-0.92**(l-1))*100)+' % schneller':'gesperrt';return 'Mut max. '+mutMax(l)}
+ if(k==='barr')return l?Math.round((1-0.92**(l-1))*100)+' % schneller':'gesperrt';if(k==='wall')return '+'+l*5+' % Abwehr';if(k==='mauer')return '+'+l*8+' % Abwehr, '+l*4+' Plätze';if(k==='rally')return l>=3?'Fürsten möglich':'Fürst ab Stufe 3';return 'Mut max. '+mutMax(l)}
 const chips=c=>c.map((v,i)=>`<span class="ch">${RN[RK[i]]} ${v}</span>`).join('');
 const hb=n=>`<b class="hd" style="font-size:20px">${n}</b>`;
 
@@ -241,13 +251,16 @@ function hdrTimers(){const o=[];
  $('#tm').innerHTML=o.slice(0,4).join('')}
 const qlv=k=>S.b[k]+(S.bq&&S.bq.k===k?1:0)+S.bqq.filter(x=>x===k).length;
 const qTarget=i=>{const k=S.bqq[i];return S.b[k]+(S.bq&&S.bq.k===k?1:0)+S.bqq.slice(0,i+1).filter(x=>x===k).length};
+function wallCard(){const sl=S.b.mauer*4,free=sl-S.wp;
+ if(!S.b.mauer)return '<div class="card"><h2>🗼 Mauerbesatzung</h2><p>Baue Wall (Stufe 3) und danach eine Mauer, um Bogenschützen auf den Zinnen zu platzieren. Wall: +5 % Abwehr je Stufe, Mauer: +8 % und 4 Plätze je Stufe.</p></div>';
+ return `<div class="card"><h2>🗼 Mauerbesatzung</h2><p>Plätze: <b>${S.wp}/${sl}</b> · Bogenschützen im Dorf: <b>${S.u.bw}</b> · Wall und Mauer: +${S.b.wall*5+S.b.mauer*8} % Abwehr</p><p>Platzierte Bogenschützen verteidigen mit ${Math.round(U.bw.a*1.5)} statt ${U.bw.d} Punkten, fallen aber im Kampf. Gefallene Plätze musst du nach Angriffen neu besetzen.</p>${free>0&&S.u.bw>0?`<p style="color:var(--bad)">${free} Plätze sind frei.</p>`:''}<div class="row" style="margin-top:6px"><button class="b s" data-a="wp" data-n="1">＋1 platzieren</button><button class="b s" data-a="wp" data-n="5">＋5</button><button class="b s" data-a="wp" data-n="all">Alle</button><button class="b s" data-a="wpc">Abziehen</button></div></div>`}
 function vDorf(){
  let h=(S.bqq.length?`<div class="card"><h2>🤖 Bauschleife</h2>${S.bqq.map((k,i)=>`<div class="row"><span>${B[k].ic} ${B[k].n} → Stufe ${qTarget(i)}</span><button class="b s" style="margin-left:auto" data-a="qdel" data-i="${i}">✕</button></div>`).join('')}<p>Startet automatisch, sobald nichts gebaut wird und die Rohstoffe reichen.</p></div>`:'')+Object.keys(B).map(k=>{const b=B[k],lv=S.b[k],c=bc(k),busy=S.bq&&S.bq.k===k;
- return `<div class="card"><div class="row"><span class="ic">${b.ic}</span><div class="g">${hb(b.n)} <span class="t">Stufe ${lv}</span><p>${b.d}</p><p class="e">${eff(k,lv)} → ${eff(k,lv+1)}</p></div></div>
+ return `<div class="card"><div class="row"><span class="ic">${b.ic}</span><div class="g">${hb(b.n)} <span class="t">Stufe ${lv}</span><p>${b.d}</p>${reqOk(k)?'':`<p style="color:var(--bad)">${reqTxt(k)}</p>`}<p class="e">${eff(k,lv)} → ${eff(k,lv+1)}</p></div></div>
  <div class="row" style="margin-top:6px">${busy?`${tbar(`🔨 Ausbau → Stufe ${lv+1}`,S.bq.start||S.bq.end-bt(k)*1000,S.bq.end)}`:`${chips(c)}<span class="t">⏱ ${ft(bt(k))}</span><button class="b" data-a="build" data-k="${k}" data-cost="${c}" data-bq="1">${lv?'Ausbauen':'Bauen'}</button>`}<button class="b s" data-a="qadd" data-k="${k}">＋ Schleife (→ Stufe ${qlv(k)+1})</button></div></div>`}).join('');
- h+=`<h2>Truppen</h2><p class="t">Bauern: ${pop()} / ${popMax()}</p>`+Object.keys(U).map(k=>{const u=U[k],ok=S.b.barr>=u.need;
+ h+=wallCard()+`<h2>Truppen</h2><p class="t">Bauern: ${pop()} / ${popMax()}</p>`+Object.keys(U).map(k=>{const u=U[k],ok=S.b.barr>=u.need&&(!u.lord||S.b.rally>=3);
   return `<div class="card"><div class="row"><span class="ic">${u.ic}</span><div class="g">${hb(u.n)} <span class="t">zu Hause: ${S.u[k]}</span><p>Angriff ${u.a} · Abwehr ${u.d} · Tragkraft ${u.cr} · ⏱ ${ut(k).toFixed(1)} s je Einheit</p></div></div>
-  <div class="row" style="margin-top:6px">${ok?`${chips(uc(k))}<span style="margin-left:auto" class="row">${[1,5].map(n=>`<button class="b s" data-a="train" data-u="${k}" data-n="${n}" data-cost="${uc(k,n)}">+${n} · ${ft(ut(k)*n)}</button>`).join('')}</span>`:`<span class="t">🔒 Kaserne Stufe ${u.need} nötig</span>`}</div></div>`}).join('');
+  <div class="row" style="margin-top:6px">${ok?`${chips(uc(k))}${u.g?`<span class="ch">🥇 ${u.g}</span>`:''}<span style="margin-left:auto" class="row">${(u.lord?[1]:[1,5]).map(n=>`<button class="b s" data-a="train" data-u="${k}" data-n="${n}" data-cost="${uc(k,n)}">+${n} · ${ft(ut(k)*n)}</button>`).join('')}</span>`:`<span class="t">🔒 Kaserne Stufe ${u.need}${u.lord?' und Versammlungsplatz Stufe 3':''} nötig</span>`}</div></div>`}).join('');
  if(S.tq.length)h+=`<div class="card"><h2>Im Drill</h2>${S.tq.map(t=>tbar(`🪖 ${t.n}× ${U[t.u].n}`,t.st||t.end-t.n*ut(t.u)*1000,t.end,'g')).join('')}</div>`;
  return h}
 
@@ -265,7 +278,7 @@ const peaceP=i=>{const c=S.camps[i];return Math.min(.9,Math.max(.1,.4+(armyAtk()
 const pctSel=()=>{let a=0,b=0;for(const k in U){a+=sendSel[k]||0;b+=S.u[k]}return b?Math.round(a/b*20)*5:0};
 function sumSend(){let n=0,atk=0,slow=0,sk='';for(const k in U){const v=Math.min(sendSel[k]||0,S.u[k]);if(v>0){n+=v;atk+=v*U[k].a;if(U[k].s>=slow){slow=U[k].s;sk=k}}}
  if(!n)return 'Wähle Truppen aus.';const tot=atk+hAtk(),d=campDef(sel),one=dist(sel)*SP.travel*slow;
- return `Truppen: <b>${n}</b> · Angriff <b>${tot}</b> (inkl. Held) gegen <b>${d}</b> – ${tot>d*1.5?'sehr gute Chancen':tot>d?'knapper Sieg':'riskant'}<br>⏱ Hinweg ${ft(one)} (langsamste Truppe ${U[sk].ic}), Rückkehr nach ${ft(2*one)}`}
+ return `Truppen: <b>${n}</b> · Angriff <b>${tot}</b> (inkl. Held) gegen <b>${d}</b> – ${tot>d*1.5?'sehr gute Chancen':tot>d?'knapper Sieg':'riskant'}<br>⏱ Hinweg ${ft(one)} (langsamste Truppe ${U[sk].ic}), Rückkehr nach ${ft(2*one)}${sendSel.fs>0?'<br>👑 Fürst dabei: Bei einem Sieg sinkt die Loyalität des Dorfes.':''}`}
 const updSend=()=>{const e=$('#ssum');if(e)e.innerHTML=sumSend()};
 function sliderInput(e){const t=e.target;if(t.classList&&t.classList.contains('ua')){sendSel[t.dataset.u]=+t.value;const n=$('#un_'+t.dataset.u);if(n)n.textContent=t.value;updSend();return true}
  if(t.id==='gsc'){document.querySelectorAll('.ua').forEach(x=>{const v=Math.round(S.u[x.dataset.u]*t.value/100);x.value=v;sendSel[x.dataset.u]=v;const n=$('#un_'+x.dataset.u);if(n)n.textContent=v});updSend();return true}return false}
@@ -286,7 +299,7 @@ function vKarte(){
  let h=svgMap()+`<div class="row" style="margin:8px 0"><button class="b s" data-a="zoom" data-v="1">＋ Zoom</button><button class="b s" data-a="zoom" data-v="-1">－</button><button class="b s" data-a="zoom" data-v="0">Alles</button><button class="b s" data-a="zoom" data-v="c">Auswahl</button></div><p class="t">Karte ziehen zum Verschieben. ${S.camps.length} Dörfer, neue entstehen mit der Zeit. Randfarbe: rot Krieg, blau Frieden, grün Handelspakt.</p>`;
  h+=`<div class="card"><div class="row"><span class="ic">${c.own?'🚩':LV[c.lv|0][1]}</span><div class="g">${hb(E(c.n))}<p>${g.ic} ${g.n}-Gegner · dein Widerstand ${Math.round(res(c.g)*100)} %</p><p>${LV[c.lv|0][1]} ${LV[c.lv|0][0]} · Entwicklung ${(c.lv|0)+1}/5${c.own?'':' – wächst mit der Zeit'}</p>`;
  if(c.own)h+=`<p class="e">Erobert: +${(.3*SP.prod*1.3**tier(sel)).toFixed(2)} ${RN[RK[sel%3]]}/s</p></div></div></div>`;
- else{h+=`<p>${relTxt(c)} · Verteidigung <b>${d}</b> · Beute ~${Math.round(70*1.6**tier(sel))}</p><div class="bar x"><i style="width:${Math.max(0,c.loy)}%"></i></div><p>Loyalität ${Math.max(0,c.loy)} % – bei 0 % wird das Dorf übernommen.</p></div></div></div>`;h+=attackCard()+diploCard(c,rel);if(rel==='trade')h+=tradeCard(c)}
+ else{h+=`<p>${relTxt(c)} · Verteidigung <b>${d}</b> (Wälle und Mauern +${(c.wl|0)*6} %) · Beute ~${Math.round(70*1.6**tier(sel))}</p><div class="bar x"><i style="width:${Math.max(0,c.loy)}%"></i></div><p>Loyalität ${Math.max(0,c.loy)} % – nur ein Fürst (👑) kann sie senken. Bei 0 % wird das Dorf übernommen.</p></div></div></div>`;h+=attackCard()+diploCard(c,rel);if(rel==='trade'||rel==='peace')h+='<div class="card"><p>🛒 Handel mit diesem Partner findest du im Tab „Händler“.</p></div>'}
  h+=warCard();
  if(S.at.length)h+=`<div class="card"><h2>Unterwegs</h2>${S.at.map(a=>tbar(`⚔️ ${E(S.camps[a.c].n)} (zurück in)`,a.st||a.end-trSec(a.c,a.u)*2000,a.end,'b')).join('')}</div>`;
  if(S.inc.length)h+=`<div class="card"><h2>Angriff naht</h2>${S.inc.map(a=>tbar(`⚠️ ${E(S.camps[a.c].n)} greift an`,a.end-WARN,a.end,'r')+`<p>Angriffsstärke ${a.p} gegen deine Abwehr ${homeDef()}</p>`).join('')}</div>`;
@@ -304,6 +317,22 @@ const coinsFor=it=>{const v=it.v,r=it.r||0;return r===0?{b:3+v}:r===1?{b:10+2*v,
 const coinTxt=c=>[c.g&&`🥇${c.g}`,c.s&&`🥈${c.s}`,c.b&&`🥉${c.b}`].filter(Boolean).join(' ')||'–';
 const dustFor=g=>[0,2,6,15][g.lv];
 const gemChance=n=>{const m=n/25-1;return{p3:Math.min(.4,.01+m*.015),p2:Math.min(.5,.1+m*.04)}};
+let tradeP=-1;
+const partners=()=>S.camps.map((c,i)=>i).filter(i=>{const c=S.camps[i];return !c.own&&(c.rel==='peace'||c.rel==='trade')});
+const coinV=v=>({g:Math.floor(v/100),s:Math.floor(v%100/10),b:v%10});
+function genOffers(){const g=P(Object.keys(GT)),lv=Math.random()<.2?3:1+R(2);return[{k:'dust',n:4+R(7),p:0},{k:'gem',g,lv,p:[0,25,70,160][lv]},{k:'food',id:P(['stew','tea','meat','mead']),p:10}].map(x=>{if(x.k==='dust')x.p=x.n*3;return x})}
+function vHandel(){const now=Date.now(),T=tradeSel;
+ let o=`<div class="card"><p style="color:var(--ink)">🥉 ${S.coin.b} · 🥈 ${S.coin.s} · 🥇 ${S.coin.g}</p></div><h2>🛒 Marktstand</h2><div class="card"><p>Verkauft Verpflegung für Bronze.</p><div class="row">${[['water',2],['bread',4],['tea',4],['stew',8],['mead',6]].map(([id,p])=>`<button class="b s" data-a="buy" data-id="${id}" data-p="${p}">${FD[id].ic} ${FD[id].n} · 🥉${p}</button>`).join('')}</div></div><h2>🤝 Handel mit Partnern</h2>`;
+ const ps=partners();
+ if(!ps.length)return o+'<div class="card"><p>Du hast noch keine Friedens- oder Handelspartner. Biete einem Dorf auf der Karte Frieden an. Mit einem Handelspakt bekommst du bessere Preise.</p></div>';
+ if(!ps.includes(tradeP))tradeP=ps[0];
+ const c=S.camps[tradeP],pact=c.rel==='trade';if(!c.so||now>(c.sot||0)){c.so=genOffers();c.sot=now+1200000}
+ const rate=pact?1:2,cap2=pact?200:100,left=now>c.tr.t?cap2:cap2-c.tr.u,bt2=(f,v,l)=>`<button class="b s ${T[f]===v?'on':''}" data-a="tset" data-f="${f}" data-v="${v}">${l}</button>`;
+ o+=`<div class="card"><div class="row">${ps.map(i=>`<button class="b s ${i===tradeP?'on':''}" data-a="tp" data-i="${i}">${LV[S.camps[i].lv|0][1]} ${E(S.camps[i].n)}</button>`).join('')}</div><p style="margin-top:6px">${relTxt(c)} · ${pact?'Faire Preise (1:1) und 20 % Rabatt auf Sonderangebote.':'Ohne Handelspakt zahlst du 2:1. Schließe auf der Karte einen Handelspakt für 1:1 und Rabatt.'}</p></div>`;
+ o+=`<div class="card"><h2>Rohstoffe tauschen</h2><p>Du zahlst ${rate}:1. Noch ${left} von ${cap2} Rohstoffen in diesem 15-Minuten-Fenster.</p><p>Ich erhalte:</p><div class="row">${RK.map(k=>bt2('w',k,RN[k])).join('')}</div><p>Ich biete:</p><div class="row">${RK.map(k=>bt2('o',k,RN[k])).join('')}</div><p>Menge, die ich erhalte:</p><div class="row">${[25,50,100].map(n=>`<button class="b s ${T.n===n?'on':''}" data-a="tset" data-f="n" data-v="${n}">${n}</button>`).join('')}<button class="b" data-a="trade">Tauschen: ${T.n*rate} ${RN[T.o]} → ${T.n} ${RN[T.w]}</button></div></div>`;
+ o+=`<h2>Sonderangebote</h2><div class="card"><p>Neue Angebote in ${ft((c.sot-now)/1000)}.</p>${c.so.map((x,i)=>{const pr=Math.round(x.p*(pact?.8:1)),nm2=x.k==='dust'?`💠 ${x.n} Quarzstaub`:x.k==='gem'?`💎 ${GT[x.g].ic} ${GT[x.g].n}-Edelstein ${['I','II','III'][x.lv-1]}`:`${FD[x.id].ic} 2× ${FD[x.id].n}`;
+  return `<div class="row" style="margin-top:6px"><div class="g">${nm2}<p>${coinTxt(coinV(pr))}</p></div><button class="b s" data-a="sbuy" data-i="${i}" ${x.sold?'disabled':''}>${x.sold?'Verkauft':'Kaufen'}</button></div>`}).join('')}</div>`;
+ return o}
 function vWerk(){const L=S.inv.map((it,i)=>[it,i]),gear=L.filter(x=>'wam'.includes(x[0].k)),gems=L.filter(x=>x[0].k==='g');
  let o=`<div class="card"><p style="color:var(--ink)">🥉 ${S.coin.b} · 🥈 ${S.coin.s} · 🥇 ${S.coin.g} · 💠 Quarzstaub ${S.dust}</p></div><h2>⚒️ Schmiede</h2><div class="card"><p>Zerlegt Ausrüstung und prägt Münzen: gewöhnlich und selten ergeben Bronze, episch Silber, legendär und Set Gold. 10 Bronze = 1 Silber, 10 Silber = 1 Gold.</p>`;
  o+=gear.length?gear.map(([it,i])=>`<div class="row" style="margin-top:6px"><span class="ic">${it.ic}</span><div class="g">${hb(nm(it))}<p>${RAR[it.r||0]} · ergibt ${coinTxt(coinsFor(it))}</p></div><button class="b s" data-a="smelt" data-i="${i}">Prägen</button></div>`).join(''):'<p>Keine Ausrüstung im Rucksack.</p>';
@@ -311,7 +340,6 @@ function vWerk(){const L=S.inv.map((it,i)=>[it,i]),gear=L.filter(x=>'wam'.includ
  o+=`</div><h2>🧙 Hexe</h2><div class="card"><p>Zerlegt Edelsteine zu Quarzstaub (I: 2, II: 6, III: 15). Aus genug Staub fertigt sie einen neuen Edelstein. Mehr Staub erhöht die Chance auf einen besseren, ein Fehlschlag mit einem einfachen Stein ist immer möglich.</p>`;
  o+=gems.length?gems.map(([it,i])=>`<div class="row" style="margin-top:6px"><span class="ic">💎</span><div class="g">${hb(nm(it))}<p>${istat(it)} · ergibt 💠 ${dustFor(it)}</p></div><button class="b s" data-a="dust" data-i="${i}">Zerlegen</button></div>`).join(''):'<p>Keine Edelsteine im Rucksack.</p>';
  o+=`<h2 style="font-size:18px;margin-top:10px">Edelstein fertigen</h2>${[25,50,100,200].map(n=>{const c=gemChance(n);return `<div class="row" style="margin-top:4px"><span>💠 ${n}</span><span class="t">III: ${Math.round(c.p3*100)} % · II: ${Math.round(c.p2*100)} % · sonst I</span><button class="b s" style="margin-left:auto" data-a="gemcraft" data-n="${n}" ${S.dust>=n?'':'disabled'}>Fertigen</button></div>`}).join('')}</div>`;
- o+=`<h2>🛒 Händler</h2><div class="card"><p>Verkauft Verpflegung für Bronze.</p><div class="row">${[['water',2],['bread',4],['tea',4],['stew',8],['mead',6]].map(([id,p])=>`<button class="b s" data-a="buy" data-id="${id}" data-p="${p}">${FD[id].ic} ${FD[id].n} · 🥉${p}</button>`).join('')}</div></div>`;
  return o}
 const nm=it=>`<span style="color:${RC[it.r||0]}">${E(it.n)}</span>`;
 function slotCard(k){const it=S.eq[k];
@@ -344,7 +372,7 @@ function vMehr(){const A=['Aus','Selten','Normal','Oft'];let bk=false;try{bk=!!l
  return `<div class="card"><h2>Schwierigkeit</h2><p>Gegnerstärke: <b id="dl">${S.diff} %</b> – wirkt sofort auf Dörfer, Monster und Überfälle. Ändere sie jederzeit, wenn gerade weniger Zeit ist.</p><input type="range" id="diff" min="25" max="200" step="5" value="${S.diff}" aria-label="Gegnerstärke">
  <p style="margin-top:8px">Überfälle auf dich (nur während du spielst):</p><div class="row">${A.map((a,i)=>`<button class="b s ${S.aggr===i?'on':''}" data-a="aggr" data-v="${i}">${a}</button>`).join('')}</div></div>
  <div class="card"><h2>💾 Spielstand sichern</h2><p>Dein Spielstand liegt nur in diesem Browser. Sichere ihn regelmäßig, vor allem vor einem Update. Neue Funktionen werden beim Einspielen automatisch ergänzt, nichts geht verloren.</p><p>Letzte Sicherung: <b>${S.lastExp?new Date(S.lastExp).toLocaleString('de-DE'):'noch nie'}</b></p><div class="row" style="margin-top:6px"><button class="b s" data-a="dl">💾 Als Datei speichern</button><button class="b s" data-a="txt">📋 Als Text kopieren</button></div>${expT?`<textarea id="ex" readonly rows="3" onfocus="this.select()">${E(expT)}</textarea>`:''}<p style="margin-top:8px">Spielstand einspielen:</p><input type="file" id="fi" accept=".json,application/json"><textarea id="imp" rows="3" placeholder="…oder kopierten Text hier einfügen">${E(impT)}</textarea><div class="row"><button class="b s" data-a="imp">⬆️ Einspielen</button>${bk?'<button class="b s" data-a="rest">♻️ Stand vor letztem Import</button>':''}</div></div>
-<div class="card"><h2>🤖 Automatisierung</h2><p>Läuft nur, solange Castle Day offen ist.</p><div class="row" style="margin-top:6px"><button class="b s ${S.auto.eat?'on':''}" data-a="aeat">Auto-Versorgung ${S.auto.eat?'an':'aus'}</button><button class="b s ${S.auto.q?'on':''}" data-a="aq">Auto-Quest ${S.auto.q?'an':'aus'}</button></div><p>Versorgung: isst und trinkt unter 30 % und zündet nachts ein Feuer an. Auto-Quest nimmt die kürzeste mögliche Quest an.</p><p style="margin-top:6px">Auto-Rekrutierung, Zielanzahl je Truppe (tippen zum Wechseln):</p><div class="row">${Object.keys(U).map(k=>`<button class="b s" data-a="arec" data-u="${k}">${U[k].ic} ${S.auto.rec[k]||'aus'}</button>`).join('')}</div><p>Bauschleife: im Dorf-Tab bei einem Gebäude „＋ Schleife“ tippen.</p></div>
+<div class="card"><h2>🤖 Automatisierung</h2><p>Läuft nur, solange Castle Day offen ist.</p><div class="row" style="margin-top:6px"><button class="b s ${S.auto.eat?'on':''}" data-a="aeat">Auto-Versorgung ${S.auto.eat?'an':'aus'}</button><button class="b s ${S.auto.q?'on':''}" data-a="aq">Auto-Quest ${S.auto.q?'an':'aus'}</button></div><p>Versorgung: isst und trinkt unter 30 % und zündet nachts ein Feuer an. Auto-Quest nimmt die kürzeste mögliche Quest an.</p><p style="margin-top:6px">Auto-Rekrutierung, Zielanzahl je Truppe (tippen zum Wechseln):</p><div class="row">${Object.keys(U).filter(k=>!U[k].lord).map(k=>`<button class="b s" data-a="arec" data-u="${k}">${U[k].ic} ${S.auto.rec[k]||'aus'}</button>`).join('')}</div><p>Bauschleife: im Dorf-Tab bei einem Gebäude „＋ Schleife“ tippen.</p></div>
  <h2>Einsatzberichte</h2>${S.reports.length?`<div class="card">${S.reports.slice(0,10).map((r,i)=>`<div class="row" style="margin:4px 0"><span>${E(r.t)}</span><button class="b s" style="margin-left:auto" data-a="ropen" data-i="${i}">Öffnen</button></div>`).join('')}</div>`:'<p class="t">Noch keine Einsatzberichte.</p>'}<h2>Chronik</h2><div class="card log">${S.log.length?S.log.map(t=>`<p>${E(t)}</p>`).join(''):'<p>Noch nichts passiert. Sehr friedlich.</p>'}</div>
  <button class="b s" data-a="reset">${armed?'Wirklich alles löschen?':'Neu anfangen'}</button>`}
 
@@ -356,10 +384,10 @@ function modal(){const m=$('#modal');if(!S.hero||F||(!S.lvq.length&&!S.rq.length
 function render(){
  $('#top').hidden=!S.hero;
  if(!S.hero){$('#view').innerHTML=vStart();$('#invbtn').hidden=true;$('#invp').hidden=true;modal();return}
- const T={dorf:['🏘️','Dorf'],karte:['🗺️','Karte'],held:['🎒','Held'],abenteuer:['👹','Abenteuer'],werk:['⚒️','Werkstatt'],mehr:['⚙️','Mehr']};
+ const T={dorf:['🏘️','Dorf'],karte:['🗺️','Karte'],held:['🎒','Held'],abenteuer:['👹','Abenteuer'],werk:['⚒️','Werkstatt'],handel:['🛒','Händler'],mehr:['⚙️','Mehr']};
  $('#tabs').innerHTML=Object.keys(T).map(k=>`<button data-a="tab" data-t="${k}" class="${k===tab?'on':''}">${T[k][0]}<br>${T[k][1]}</button>`).join('');
  $('#hp').textContent=`${CL[S.hero.c].ic} ${S.hero.n} · Stufe ${S.hero.lv}`;
- $('#view').innerHTML={dorf:vDorf,karte:vKarte,held:vHeld,abenteuer:vAbenteuer,werk:vWerk,mehr:vMehr}[tab]();
+ $('#view').innerHTML={dorf:vDorf,karte:vKarte,held:vHeld,abenteuer:vAbenteuer,werk:vWerk,handel:vHandel,mehr:vMehr}[tab]();
  if(tab==='abenteuer')drawFight();
  $('#invp').hidden=!Iv;$('#invbtn').hidden=false;if(Iv)$('#invc').innerHTML=vEquip();
  hdrTimers();
@@ -372,8 +400,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   S.inv=[genGem('fire',1),mkFood('bread'),mkFood('water')];S.qo=genQ();S.enc=genEnc();lg(`🍺 ${n} betritt das Dorf. Der Wirt schaut kurz auf und zapft weiter.`);tab='dorf';break}
  case 'tab':tab=d.t;armed=false;G=null;break;
  case 'sel':if(moved)return;sel=+d.c;break;
- case 'build':{const k=d.k,c=bc(k);if(S.bq||!afford(c))return;pay(c);S.bq={k,start:now,end:now+bt(k)*1000};break}
- case 'train':{const k=d.u,n=+d.n,c=uc(k,n);if(!afford(c))return;if(pop()+n*U[k].p>popMax()){toast('Zu wenig Bauern – bau den Bauernhof aus.');return}pay(c);S.tq.push({u:k,n,st:now,end:now+n*ut(k)*1000});break}
+ case 'build':{const k=d.k,c=bc(k);if(!reqOk(k)){toast(reqTxt(k));return}if(S.bq||!afford(c))return;pay(c);S.bq={k,start:now,end:now+bt(k)*1000};break}
+ case 'train':{const k=d.u,n=+d.n,c=uc(k,n);if(!afford(c))return;if(U[k].lord&&(S.b.rally<3||S.b.barr<U[k].need)){toast('Dafür brauchst du Versammlungsplatz Stufe 3 und Kaserne '+U[k].need+'.');return}if(U[k].g&&cv()<U[k].g*100*n){toast('Zu wenig Gold: '+U[k].g+' 🥇 nötig.');return}if(pop()+n*U[k].p>popMax()){toast('Zu wenig Bauern – bau den Bauernhof aus.');return}pay(c);if(U[k].g)setCv(cv()-U[k].g*100*n);S.tq.push({u:k,n,st:now,end:now+n*ut(k)*1000});break}
  case 'send':{const c=S.camps[sel];if(c.own){toast('Dieses Dorf gehört dir schon.');return}
   const bl=blocked('attack');if(bl){toast(bl);return}
   if(c.rel==='peace'||c.rel==='trade'){toast('Du hast Frieden mit '+c.n+'. Erkläre zuerst den Krieg.');return}
@@ -394,11 +422,19 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   else{S.rep=Math.max(0,S.rep-3);lg(`⚔️ Du erklärst ${c.n} den Krieg.`)}
   toast('⚔️ Krieg mit '+c.n);break}
  case 'tset':if(d.f==='n')tradeSel.n=+d.v;else tradeSel[d.f]=d.v;break;
- case 'trade':{const c=S.camps[sel],T=tradeSel;if(c.rel!=='trade')return;if(now>c.tr.t)c.tr={u:0,t:now+900000};
+ case 'tp':tradeP=+d.i;break;
+ case 'trade':{const c=S.camps[tradeP],T=tradeSel;if(!c||!(c.rel==='trade'||c.rel==='peace'))return;if(now>c.tr.t)c.tr={u:0,t:now+900000};
+  const rate=c.rel==='trade'?1:2,cap2=c.rel==='trade'?200:100,give=T.n*rate;
   if(T.o===T.w){toast('Wähle zwei verschiedene Rohstoffe.');return}
-  if(c.tr.u+T.n>200){toast('Handelsgrenze erreicht (200 je 15 Min.).');return}
-  if(S.r[T.o]<T.n){toast('Nicht genug '+RN[T.o]);return}
-  S.r[T.o]-=T.n;addRes(T.w,T.n);c.tr.u+=T.n;lg(`🤝 Handel mit ${c.n}: ${T.n} ${RN[T.o]} gegen ${T.n} ${RN[T.w]}.`);toast('Handel abgeschlossen');break}
+  if(c.tr.u+T.n>cap2){toast('Handelsgrenze erreicht ('+cap2+' je 15 Min.).');return}
+  if(S.r[T.o]<give){toast('Nicht genug '+RN[T.o]);return}
+  S.r[T.o]-=give;addRes(T.w,T.n);c.tr.u+=T.n;lg(`🤝 Handel mit ${c.n}: ${give} ${RN[T.o]} gegen ${T.n} ${RN[T.w]}.`);toast('Handel abgeschlossen');break}
+ case 'sbuy':{const c=S.camps[tradeP],x=c&&c.so&&c.so[+d.i];if(!x||x.sold)return;const pr=Math.round(x.p*(c.rel==='trade'?.8:1));if(cv()<pr){toast('Zu wenig Münzen.');return}
+  if(x.k!=='dust'&&S.inv.length>=30){toast('Rucksack voll.');return}setCv(cv()-pr);
+  if(x.k==='dust')S.dust+=x.n;else if(x.k==='gem')addItem(genGem(x.g,x.lv));else{addItem(mkFood(x.id));addItem(mkFood(x.id))}
+  x.sold=true;lg(`🛒 ${c.n}: Sonderangebot gekauft.`);toast('Gekauft!');break}
+ case 'wp':{const free=S.b.mauer*4-S.wp,m=Math.min(d.n==='all'?999:+d.n,free,S.u.bw);if(m<=0){toast(free<=0?'Keine freien Plätze auf der Mauer.':'Keine Bogenschützen im Dorf.');return}S.u.bw-=m;S.wp+=m;toast(m+' Bogenschützen platziert');break}
+ case 'wpc':S.u.bw+=S.wp;S.wp=0;break;
  case 'icat':icat=d.c;break;
  case 'rclose':S.rq.shift();break;
  case 'ropen':S.rq.unshift(S.reports[+d.i]);break;
@@ -429,7 +465,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  case 'aeat':S.auto.eat=!S.auto.eat;break;
  case 'aq':S.auto.q=!S.auto.q;break;
  case 'arec':{const T=[0,10,25,50,100],i=T.indexOf(S.auto.rec[d.u]);S.auto.rec[d.u]=T[(i+1)%T.length];break}
- case 'qadd':if(S.bqq.length>=5){toast('Die Bauschleife ist voll.');return}S.bqq.push(d.k);toast(B[d.k].n+' zur Bauschleife hinzugefügt');break;
+ case 'qadd':if(!reqOk(d.k)){toast(reqTxt(d.k));return}if(S.bqq.length>=5){toast('Die Bauschleife ist voll.');return}S.bqq.push(d.k);toast(B[d.k].n+' zur Bauschleife hinzugefügt');break;
  case 'qdel':S.bqq.splice(+d.i,1);break;
  case 'aggr':S.aggr=+d.v;break;
  case 'open':Mr=rollReward(S.lvq[0]);break;
@@ -448,7 +484,7 @@ const GL=[['🪵','Holz','Baumaterial. Der Holzfäller produziert es.'],['🧱',
 ['🪓','Holzfäller / Axtschwinger','Gebäude für Holz, aber auch Truppe mit hohem Angriff und wenig Abwehr.'],['⛏️','Eisenmine','Produziert Eisen.'],['🌾','Bauernhof','Mehr Bauern, damit du mehr Truppen halten kannst.'],['🛡️','Kaserne / Abwehr','Schaltet Truppen frei. Bei Werten: Abwehr bzw. Rüstung.'],
 ['🔱','Speerträger','Gute Abwehr, schwacher Angriff.'],['🗡️','Schwert','Schwertkämpfer oder Waffe. Erhöht den Angriff.'],['⚔️','Angriff','Dein Kampfwert. Auch das Symbol der Klasse Krieger.'],['🔮','Magier','Bekommt 50 % mehr Erfahrung aus Quests.'],['🏹','Späher','Erbeutet 30 % mehr bei Raubzügen.'],
 ['❄️','Frost','Frost-Gegner. Frost-Edelsteine geben Frost-Widerstand.'],['☠️','Gift','Gift-Gegner. Gift-Edelsteine geben Gift-Widerstand.'],['💎','Edelstein','Wird in einen Sockel gesetzt und gibt Widerstand gegen einen Gegnertyp.'],['❤️','Leben','Deine Lebenspunkte in Kämpfen.'],['🍀','Glück','Erhöht Drop-Chancen und die Chance auf bessere Items.'],
-['⛺','Lager','Entwicklungsstufe 1 von 5. Gegnerische Dörfer wachsen mit der Zeit.'],['🛖','Weiler','Stufe 2 von 5 eines gegnerischen Dorfes.'],['🏡','Dorf','Stufe 3 von 5 eines gegnerischen Dorfes.'],['🏰','Burg','Stufe 4 von 5. Starke Verteidigung. Kann überfallen und bei 0 % Loyalität übernommen werden.'],['🏯','Festung','Höchste Stufe 5: stark verteidigt, aber viel Beute.'],['🤖','Automatisierung','Bauschleife, Rekrutierung, Versorgung und Quests laufen automatisch.'],['💾','Spielstand','Sichert deinen Fortschritt als Datei, damit du ihn nach einem Update wieder einspielen kannst.'],['⚒️','Werkstatt','Schmiede, Hexe und Händler.'],['🥉','Bronze','Münze. 10 Bronze = 1 Silber.'],['🥈','Silber','Münze. 10 Silber = 1 Gold.'],['🥇','Gold','Wertvollste Münze.'],['💠','Quarzstaub','Entsteht beim Zerlegen von Edelsteinen. Die Hexe fertigt daraus neue Steine.'],['🧙','Hexe','Zerlegt Edelsteine und fertigt neue.'],['🕊️','Frieden','Das Dorf greift dich nicht an.'],['🤝','Handelspakt','Tausche Rohstoffe 1:1.'],['😐','Neutral','Keine besondere Beziehung.'],['🎯','Bogenschütze','Fernkämpfer, ab Kaserne Stufe 4.'],['🏇','Reiter','Sehr schnell unterwegs, ab Kaserne Stufe 6.'],['⚜️','Ritter','Stärkste Truppe, ab Kaserne Stufe 8.'],['💀','Elite-Gegner','Stärker als normale Monster, aber mit mehr Beute und Erfahrung.'],['🛒','Händler','Verkauft Verpflegung für Bronze.'],['🥶','Kälte','Zu kalt: Kämpfe und Ausrücken sind gesperrt.'],['😴','Erschöpft','Zu wenig Energie für Quests und Kämpfe.'],['🏠','Dein Dorf','Hier bist du zu Hause.'],['🚩','Erobertes Dorf','Gehört dir und liefert Rohstoffe.'],['✦','Spezialeffekt','Besonderer Bonus auf epischen, legendären und Set-Items.'],['★','Legendär','Legendäre Items haben zwei starke Effekte.'],['📿','Amulett','Gibt Glück und Sockel für Edelsteine.'],['◯','Sockel','Freier Platz für einen Edelstein.'],
+['⛺','Lager','Entwicklungsstufe 1 von 5. Gegnerische Dörfer wachsen mit der Zeit.'],['🛖','Weiler','Stufe 2 von 5 eines gegnerischen Dorfes.'],['🏡','Dorf','Stufe 3 von 5 eines gegnerischen Dorfes.'],['🏰','Burg','Stufe 4 von 5. Starke Verteidigung. Kann überfallen und bei 0 % Loyalität übernommen werden.'],['🏯','Festung','Höchste Stufe 5: stark verteidigt, aber viel Beute.'],['🤖','Automatisierung','Bauschleife, Rekrutierung, Versorgung und Quests laufen automatisch.'],['💾','Spielstand','Sichert deinen Fortschritt als Datei, damit du ihn nach einem Update wieder einspielen kannst.'],['⚒️','Werkstatt','Schmiede, Hexe und Händler.'],['🥉','Bronze','Münze. 10 Bronze = 1 Silber.'],['🥈','Silber','Münze. 10 Silber = 1 Gold.'],['🥇','Gold','Wertvollste Münze.'],['💠','Quarzstaub','Entsteht beim Zerlegen von Edelsteinen. Die Hexe fertigt daraus neue Steine.'],['🧙','Hexe','Zerlegt Edelsteine und fertigt neue.'],['🕊️','Frieden','Das Dorf greift dich nicht an.'],['🤝','Handelspakt','Tausche Rohstoffe 1:1.'],['😐','Neutral','Keine besondere Beziehung.'],['🎯','Bogenschütze','Fernkämpfer, ab Kaserne Stufe 4.'],['🏇','Reiter','Sehr schnell unterwegs, ab Kaserne Stufe 6.'],['⚜️','Ritter','Stärkste Truppe, ab Kaserne Stufe 8.'],['💀','Elite-Gegner','Stärker als normale Monster, aber mit mehr Beute und Erfahrung.'],['🛒','Händler','Marktstand, Handel mit Friedens- und Handelspartnern und Sonderangebote.'],['🌅','Morgen','Die Sonne geht auf.'],['🌇','Abend','Es dämmert, bald wird es Nacht.'],['🕐','Uhrzeit','Spielzeit: Ein Spieltag dauert 30 Minuten echter Zeit.'],['👑','Fürst','Sehr teure und sehr langsame Einheit. Senkt bei einem Sieg die Loyalität eines Dorfes. Nur so lassen sich Dörfer übernehmen.'],['🏛️','Versammlungsplatz','Hier werden Fürsten angeworben (Stufe 3 und Kaserne 10).'],['⛰️','Wall','Erhöht deine Abwehr um 5 % je Stufe.'],['🗼','Mauer','Erhöht die Abwehr um 8 % je Stufe und bietet Plätze für Bogenschützen.'],['🥶','Kälte','Zu kalt: Kämpfe und Ausrücken sind gesperrt.'],['😴','Erschöpft','Zu wenig Energie für Quests und Kämpfe.'],['🏠','Dein Dorf','Hier bist du zu Hause.'],['🚩','Erobertes Dorf','Gehört dir und liefert Rohstoffe.'],['✦','Spezialeffekt','Besonderer Bonus auf epischen, legendären und Set-Items.'],['★','Legendär','Legendäre Items haben zwei starke Effekte.'],['📿','Amulett','Gibt Glück und Sockel für Edelsteine.'],['◯','Sockel','Freier Platz für einen Edelstein.'],
 ['💥','Kritischer Treffer','Macht 80 % mehr Schaden.'],['🏆','Sieg','Du hast gewonnen und Belohnung erhalten.'],['😵','Bewusstlos','Du hast verloren. Du verlierst nur etwas Durst und Hunger, sterben kannst du nicht.'],['😩','Geschwächt','Zu niedrige Überlebenswerte senken deinen Angriff.'],['😊','Gut versorgt','Alle Überlebenswerte sind in Ordnung.'],
 ['🍞','Brot','Stillt Hunger.'],['🍲','Eintopf','Stillt viel Hunger und wärmt etwas.'],['🍯','Met','Stillt Durst und gibt Mut.'],['🍵','Kräutertee','Stillt Durst, wärmt und gibt Energie.'],['⚠️','Angriff naht','Ein Gegner überfällt bald dein Dorf. Deine Truppen und dein Held verteidigen.'],['🔨','Bauarbeiten','Ein Gebäude wird gerade ausgebaut.'],['🎁','Truhe','Belohnung beim Stufenaufstieg.'],['🪖','Truppen','Ausgebildete Soldaten.'],['🎉','Stufenaufstieg','Dein Held ist eine Stufe aufgestiegen.']];
 const GR=GL.map(([k,t,x])=>[new RegExp(k.replace(/\uFE0F/g,'')+'\uFE0F?','g'),t,x,k]);
