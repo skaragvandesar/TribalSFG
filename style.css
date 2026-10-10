@@ -17,7 +17,7 @@ h1{font-size:24px}h2{font-size:22px;margin:4px 0 8px}
 .xp .bar,.qr .bar{flex:1;height:10px;margin:0}.xp span{white-space:nowrap}.qr span{white-space:nowrap;max-width:55%;overflow:hidden;text-overflow:ellipsis}
 .warn{background:var(--bad);color:#fff;border:3px solid var(--line);border-radius:8px;padding:2px 8px;font-weight:800;font-size:13px;margin:4px 0}
 #tabs{display:flex;gap:4px}
-#tabs button{flex:1;padding:5px 0;font:inherit;font-size:12px;color:var(--ink);background:var(--panel);border:3px solid var(--line);border-radius:8px;cursor:pointer}
+#tabs button{flex:1;padding:5px 0;font:inherit;font-size:10.5px;color:var(--ink);background:var(--panel);border:3px solid var(--line);border-radius:8px;cursor:pointer}
 #tabs button.on{background:var(--acc);color:#2b1d14}
 main{padding:12px 10px 100px;max-width:640px;margin:0 auto}
 .card{background:var(--panel);border:3px solid var(--line);border-radius:14px;box-shadow:4px 4px 0 var(--line);padding:10px;margin-bottom:12px}
@@ -51,6 +51,7 @@ input[type=file]{font:inherit;font-size:13px;margin:6px 0;max-width:100%}
 .tb span{position:relative;display:block;text-align:center;line-height:26px;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 18px/26px Bangers,Impact,sans-serif;letter-spacing:.05em;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 2px 0 #000}
 .tb.c{height:24px;margin:3px 0}.tb.c span{font-size:14px;line-height:18px}
 #tm{margin-top:4px}
+.rep{text-align:left;max-height:55vh;overflow:auto;margin:8px 0}.rep p{margin:3px 0;color:var(--ink);font-size:14px}
 .army{font-size:12px;font-weight:800;margin-top:4px}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 #modal[hidden],#invp[hidden]{display:none}
