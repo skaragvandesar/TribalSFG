@@ -39,16 +39,60 @@ const WIN=['%c fällt! Die Wachen hielten „Kapitulation“ für ein Eintopfrez
 const LOSE=['%c hat euch vertrieben. Ein Huhn war maßgeblich beteiligt.','Niederlage bei %c. Die Verteidiger lachten, bis sie husteten.'];
 const MS=[{n:'Glutgoblin',ic:'👺',g:'fire'},{n:'Frostwolf',ic:'🐺',g:'frost'},{n:'Giftspinne',ic:'🕷️',g:'poison'},{n:'Feuerhuhn',ic:'🐔',g:'fire'},{n:'Eisbär mit Hut',ic:'🐻',g:'frost'},{n:'Moorschleim',ic:'🦠',g:'poison'}];
 const QP=[['Der Wirt sucht seine Katze','Sie saß die ganze Zeit auf deinem Kopf.'],['Bring dem Bäcker zwölf Brezeln','Du hast elf abgeliefert. Niemand hat gezählt.'],['Vertreibe die Ratten aus dem Keller','Die Ratten haben jetzt Hausverbot – und einen Betriebsrat.'],['Begleite den Händler nach Fettnapf','Er redete den ganzen Weg über sein Rückenleiden.'],['Besiege den Schrecken von Schlammstedt','Es war ein Gänserich. Ein sehr, sehr großer Gänserich.']];
-const FD={water:{n:'Wasser',ic:'💧',w:40,f:0,mu:0},bread:{n:'Brot',ic:'🍞',w:0,f:30,mu:0},stew:{n:'Eintopf',ic:'🍲',w:10,f:50,mu:0,wm:10},mead:{n:'Met',ic:'🍯',w:25,f:0,mu:12},meat:{n:'Wildbret',ic:'🍖',w:0,f:40,mu:0,en:8},tea:{n:'Kräutertee',ic:'🍵',w:20,f:0,mu:0,wm:25,en:10}};
+const BF={bier:{n:'Bierlaune',min:10,m:{fd:1.7},atk:.95,bad:1},wein:{n:'Weinseligkeit',min:12,m:{en:1.6},atk:.9,bad:1},met:{n:'Met-Wärme',min:8,m:{fd:1.3,wm:.5}},satt:{n:'Gut genährt',min:15,m:{fd:.6}},fest:{n:'Festtagslaune',min:20,m:{fd:.5,en:.6,wt:.7}},salz:{n:'Salzgeschmack',min:10,m:{wt:1.8},bad:1}};
+const FD={water:{n:'Wasser',ic:'💧',w:40},tea:{n:'Kräutertee',ic:'🍵',w:20,wm:25,en:10},bread:{n:'Brot',ic:'🍞',f:30},cheese:{n:'Käse & Brot',ic:'🧀',f:35,en:10},broth:{n:'Kräuterbrühe',ic:'🥣',w:25,f:15,wm:20,en:8},stew:{n:'Eintopf',ic:'🍲',w:10,f:50,wm:10},meat:{n:'Wildbret',ic:'🥩',f:40,en:8},salt:{n:'Pökelfleisch',ic:'🥓',f:45,w:-15,buff:'salz'},roast:{n:'Braten',ic:'🍗',f:55,en:25,wm:10,buff:'satt'},cake:{n:'Honigkuchen',ic:'🍰',f:25,en:30},feast:{n:'Festmahl',ic:'🥘',f:80,w:15,en:35,wm:15,mu:10,buff:'fest'},beer:{n:'Bier',ic:'🍻',w:25,mu:8,wm:5,buff:'bier'},wine:{n:'Wein',ic:'🍷',w:15,mu:15,wm:15,buff:'wein'},mead:{n:'Met',ic:'🍯',w:20,mu:12,wm:10,buff:'met'}};
+const FL={w:'Durst',f:'Hunger',en:'Energie',wm:'Wärme',mu:'Mut'};
+function buffTxt(b){const p=[];for(const k in b.m){const v=b.m[k];p.push(`${{fd:'Hunger',wt:'Durst',en:'Energie',wm:'Kälte'}[k]} sinkt ${Math.round(Math.abs(v-1)*100)} % ${v>1?'schneller':'langsamer'}`)}if(b.atk)p.push(`Angriff ${Math.round((b.atk-1)*100)} %`);return `${b.n} (${b.min} Min.): ${p.join(', ')}`}
+function foodTxt(id){const f=FD[id],p=Object.keys(FL).filter(k=>f[k]).map(k=>`${FL[k]} ${f[k]>0?'+':''}${f[k]}`);if(f.buff)p.push('⏳ '+buffTxt(BF[f.buff]));return p.join(' · ')}
+const buffMul=k=>S.buffs.reduce((a,x)=>a*((BF[x.id].m||{})[k]||1),1);
+const atkBuff=()=>S.buffs.reduce((a,x)=>a*(BF[x.id].atk||1),1);
+function eat(id){const f=FD[id],c=(v,m=100)=>Math.max(0,Math.min(m,v));S.wt=c(S.wt+(f.w||0));S.fd=c(S.fd+(f.f||0));S.en=c(S.en+(f.en||0));S.wm=c(S.wm+(f.wm||0));S.mut=c(S.mut+(f.mu||0),mutMax());
+ if(f.buff){const b=BF[f.buff],n=Date.now();S.buffs=S.buffs.filter(x=>x.id!==f.buff);S.buffs.push({id:f.buff,start:n,end:n+b.min*60000})}}
+const DEC=[
+{q:'Der Dieb vom Markt',x:'Die Wache bringt einen Mann, der einen Laib Brot gestohlen hat. Seine Kinder hungern. Die Händler fordern Härte.',o:[
+ {t:'Hinrichten lassen',r:'Der Platz schweigt. Diebstähle hören auf, doch man flüstert über dich.',e:{rep:-8,xp:1.15,coin:2}},
+ {t:'In den Stock stellen',r:'Eine Nacht am Pranger. Das Volk nennt es gerecht.',e:{rep:1}},
+ {t:'Begnadigen und Brot geben',r:'Der Mann weint vor Dankbarkeit. Die Bauern erzählen es weiter.',e:{rep:5,res:.9}}]},
+{q:'Die Hebamme unter Verdacht',x:'Nach einer Missernte beschuldigen Dorfbewohner die Hebamme der Hexerei. Der Pfarrer drängt auf ein Urteil.',o:[
+ {t:'Auf den Scheiterhaufen',r:'Die Menge ist zufrieden, die Ernte bleibt trotzdem schlecht.',e:{rep:-10,xp:1.1,coin:3}},
+ {t:'Freisprechen',r:'Die Hebamme dankt dir und lehrt deine Leute Heilkräuter.',e:{rep:5,item:.25}},
+ {t:'Aus dem Land verbannen',r:'Sie zieht still ab. Manche murren, manche atmen auf.',e:{rep:-2,res:1.1}}]},
+{q:'Bitte um Steuererlass',x:'Hungernde Bauern knien vor dir und bitten, die Abgaben zu senken. Die Schatzkammer ist knapp.',o:[
+ {t:'Steuern erlassen',r:'Die Bauern jubeln. Die Kasse bleibt leer.',e:{rep:6,res:.7}},
+ {t:'Steuern halten',r:'Die Bauern zahlen murrend.',e:{rep:-3,res:1.2}},
+ {t:'Steuern erhöhen',r:'Die Kasse füllt sich, die Dörfer kochen vor Zorn.',e:{rep:-10,res:1.5}}]},
+{q:'Der gefangene Ritter',x:'Ein feindlicher Ritter wurde gefangen. Seine Familie bietet Lösegeld.',o:[
+ {t:'Lösegeld fordern',r:'Das Gold kommt, der Ritter zieht ab.',e:{coin:12}},
+ {t:'Auf Ehrenwort freilassen',r:'Ritter vergessen so etwas nicht. Er schickt später ein Geschenk.',e:{rep:6,item:.3}},
+ {t:'Hinrichten lassen',r:'Die Feinde schwören Rache, deine Soldaten sind unruhig.',e:{rep:-7,xp:1.1}}]},
+{q:'Streit um den Brunnen',x:'Zwei Bauern streiten, wem der Brunnen gehört. Einer ist reich, der andere arm.',o:[
+ {t:'Brunnen für alle',r:'Alle dürfen schöpfen. Der Reiche schmollt.',e:{rep:4,wt:20}},
+ {t:'Dem Reichen Recht geben',r:'Er bedankt sich großzügig.',e:{rep:-5,coin:5}},
+ {t:'Beide bestrafen',r:'Der Streit endet, die Stimmung auch.',e:{rep:-2,res:1.1}}]},
+{q:'Der Schmuggler',x:'Ein Händler führt verbotene Ware durch dein Land.',o:[
+ {t:'Ware beschlagnahmen',r:'Die Vorratskammer füllt sich, der Händler flucht.',e:{res:1.3,rep:-3}},
+ {t:'Zoll erheben, laufen lassen',r:'Der Händler zahlt und lächelt.',e:{coin:6}},
+ {t:'Ins Gefängnis werfen',r:'Gerechtigkeit geschieht, aber der Aufwand ist hoch.',e:{rep:2,res:.85}}]},
+{q:'Der Spion',x:'Ein Fremder wurde beim Lauschen in der Burg gefasst.',o:[
+ {t:'Hinrichten lassen',r:'Eine Warnung an alle Spione.',e:{rep:-6,xp:1.15}},
+ {t:'Verhören',r:'Unter Druck verrät er einiges.',e:{xp:1.3,rep:-2}},
+ {t:'Als Doppelspion anwerben',r:'Er sendet nun falsche Berichte.',e:{item:.3,coin:3}}]},
+{q:'Wilderer im Königsforst',x:'Ein hungriger Jäger erlegte ein Reh im königlichen Wald.',o:[
+ {t:'Hart bestrafen',r:'Das Wild bleibt unberührt, die Dörfler schauen weg.',e:{rep:-6,en:5}},
+ {t:'Geldstrafe',r:'Er zahlt, was er hat.',e:{coin:3}},
+ {t:'Als Jäger anstellen',r:'Er liefert Wildbret und kennt jeden Pfad.',e:{rep:3,fd:20,item:.2}}]}];
+const effTxt=e=>{const p=[],pc=v=>`${Math.round((v-1)*100)>=0?'+':''}${Math.round((v-1)*100)} %`;if(e.rep)p.push(`Ruf ${e.rep>0?'+':''}${e.rep}`);if(e.xp)p.push('EP '+pc(e.xp));if(e.res)p.push('Rohstoffe '+pc(e.res));if(e.coin)p.push(`+${e.coin} 🥉`);if(e.item)p.push(`+${Math.round(e.item*100)} % Beutechance`);[['wt','💧'],['fd','🍖'],['en','⚡'],['mut','💪']].forEach(([k,i])=>{if(e[k])p.push(`${i} ${e[k]>0?'+':''}${e[k]}`)});return p.join(' · ')||'keine besonderen Folgen'};
+const PROF=[[.6,.25,.15],[.15,.6,.25],[.25,.15,.6],[.45,.4,.15],[.15,.45,.4],[.4,.15,.45],[.34,.33,.33]];
+function qSplit(a){const w=P(PROF),p=[0,1,2].sort(()=>Math.random()-.5),o={};RK.forEach((k,i)=>o[k]=Math.round(a*w[p[i]]));return o}
 const LQ=[['Eskortiere die Karawane durch den Düsterwald','Die Karawane bestand aus einem Esel. Der Esel hat dich geführt.'],['Bewache die Brauerei eine ganze Nacht','Du hast „probiert“. Fachlich.'],['Erkunde die Verlorene Gruft','Die Gruft war nie verloren. Nur schlecht ausgeschildert.']];
 const SUF=['des Grauens','der Gemütlichkeit','vom Dachboden','mit Kratzer','der Verwirrung','des Wirts'];
 const BN={w:['Schwert','Streitkolben','Axt','Bratpfanne'],a:['Wams','Kettenhemd','Topfrüstung'],m:['Amulett','Talisman','Glücksbringer']};
 const SLOT={w:'Waffe',a:'Rüstung',m:'Amulett'},SIC={w:'🗡️',a:'🛡️',m:'📿'};
 let S,tab='dorf',armed=false,tt,F=null,G=null,Mr=null,sel=0,Iv=false,ua=null,mz={x:240,y:220,z:1},moved=false;
 
-const SAVE_V=5;
+const SAVE_V=6;
 let impT='',expT='';
-const fresh=()=>({v:SAVE_V,lastExp:0,t:Date.now(),r:{h:150,l:150,e:100},b:{wood:1,clay:1,iron:1,store:1,farm:1,barr:0,tav:0,wall:0,mauer:0,rally:0},u:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0,fs:0},bq:null,tq:[],at:[],inc:[],q:null,qo:[],enc:[],mut:60,wt:100,fd:100,en:100,wm:100,fire:0,well:0,diff:100,aggr:2,nat:1200,wp:0,rq:[],reports:[],coin:{b:0,s:0,g:0},dust:0,rep:50,nw:Date.now()+300000,hero:null,eq:{w:null,a:null,m:null},inv:[],lvq:[],camps:CN.map(([n,g],i)=>({n,g,w:0,loy:100,own:false,lv:Math.min(3,i>>1),rel:'n',tr:{u:0,t:0},cd:0,wl:0,pw:newPw(i,Math.min(3,i>>1))})),ns:Date.now()+1800000,ng:Date.now()+900000,auto:{eat:false,q:false,rec:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0,fs:0}},bqq:[],log:[]});
+const fresh=()=>({v:SAVE_V,lastExp:0,t:Date.now(),r:{h:150,l:150,e:100},b:{wood:1,clay:1,iron:1,store:1,farm:1,barr:0,tav:0,wall:0,mauer:0,rally:0},u:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0,fs:0},bq:null,tq:[],at:[],inc:[],q:null,qo:[],enc:[],mut:60,wt:100,fd:100,en:100,wm:100,fire:0,well:0,diff:100,aggr:2,nat:1200,wp:0,shop:{t:0,items:[]},dec:null,buffs:[],rq:[],reports:[],coin:{b:0,s:0,g:0},dust:0,rep:50,nw:Date.now()+300000,hero:null,eq:{w:null,a:null,m:null},inv:[],lvq:[],camps:CN.map(([n,g],i)=>({n,g,w:0,loy:100,own:false,lv:Math.min(3,i>>1),rel:'n',tr:{u:0,t:0},cd:0,wl:0,pw:newPw(i,Math.min(3,i>>1))})),ns:Date.now()+1800000,ng:Date.now()+900000,auto:{eat:false,q:false,rec:{sp:0,ax:0,sw:0,bw:0,rt:0,rr:0,fs:0}},bqq:[],log:[]});
 /* Spielstand: Version, Zusammenführen mit Standardwerten und Migration.
    Neue Spielfunktionen: Standardwerte in fresh() ergänzen. Nur bei Umbauten bestehender Daten SAVE_V erhöhen und in migrate() einen Schritt ergänzen. */
 function merge(base,inc){if(inc===undefined||inc===null)return base;if(base===null||typeof base!=='object'||Array.isArray(base))return inc;const o=Object.assign({},base);for(const k in inc)o[k]=(k in base)?merge(base[k],inc[k]):inc[k];return o}
@@ -74,7 +118,7 @@ const PH=[[6,'dawn','🌅','Morgen'],[10,'day','☀️','Tag'],[17,'dusk','🌇'
 function tod(){const h=(Date.now()/1000%1800)/1800*24;let i=3;if(h>=6)for(let k=0;k<4;k++)if(h>=PH[k][0])i=k;
  const nx=PH[(i+1)%4],nb=nx[0]>h?nx[0]:nx[0]+24;return{key:PH[i][1],icon:PH[i][2],name:PH[i][3],h,nextName:nx[3],secs:(nb-h)*75}}
 const night=()=>tod().key==='night';
-const hAtk=()=>Math.round((6+S.hero.lv*3+(S.eq.w?S.eq.w.v:0))*dmul()*(S.hero.c==='K'?1.2:1)*(1+fx('atkp')/100));
+const hAtk=()=>Math.round((6+S.hero.lv*3+(S.eq.w?S.eq.w.v:0))*dmul()*(S.hero.c==='K'?1.2:1)*(1+fx('atkp')/100)*atkBuff());
 const hHp=()=>60+S.hero.lv*12+(S.eq.a?S.eq.a.v*3:0);
 const hDef=()=>S.hero.lv*2+(S.eq.a?S.eq.a.v:0);
 const luck=()=>(S.eq.m?S.eq.m.v:0)+Math.round(fx('loot')/2);
@@ -118,7 +162,7 @@ const genGem=(g,lv)=>({k:'g',g,lv,n:`${GT[g].n}-Edelstein ${['I','II','III'][lv-
 const mkFood=id=>({k:'f',id,n:FD[id].n,ic:FD[id].ic});
 function addItem(it){if(S.inv.length<30){S.inv.push(it);return}for(const k of RK)addRes(k,10*((it.r||0)+1));lg(`🎒 Inventar voll – ${it.n} wurde zu Rohstoffen zerlegt.`)}
 function istat(it){if(it.k==='g')return `${GT[it.g].ic} ${GT[it.g].n}-Widerstand +${8*it.lv} %`;
- if(it.k==='f'){const f=FD[it.id];return [f.w&&`Durst +${f.w}`,f.f&&`Hunger +${f.f}`,f.mu&&`Mut +${f.mu}`,f.en&&`Energie +${f.en}`,f.wm&&`Wärme +${f.wm}`].filter(Boolean).join(' · ')}
+ if(it.k==='f')return foodTxt(it.id);
  return `${{w:'Angriff',a:'Abwehr & Leben',m:'Glück'}[it.k]} +${it.v} · ${RAR[it.r]}`}
 function rollReward(lv){const x=Math.random();
  if(x<.6)return genDrop(lv%5===0?.02:0);
@@ -126,7 +170,7 @@ function rollReward(lv){const x=Math.random();
  return mkFood(P(['stew','mead']))}
 function gain(xp){xp=Math.round(xp*(1+fx('xp')/100));const h=S.hero;h.xp+=xp;while(h.xp>=xpN(h.lv)){h.xp-=xpN(h.lv);h.lv++;S.lvq.push(h.lv);lg(`🎉 ${h.n} erreicht Stufe ${h.lv}!`)}}
 function genQ(){const lv=S.hero.lv,m=S.hero.c==='M'?1.5:1,q=[];
- const mk=(t,x,dur)=>{const mn=dur/60;return{t,x,mut:Math.round(8+mn*.8),dur,xp:Math.round(mn*(5+lv*1.6)*m*(dur>=1800?1.3:1)),res:P(RK),amt:Math.round(mn*(10+lv*2))}};
+ const mk=(t,x,dur)=>{const mn=dur/60;return{t,x,mut:Math.round(8+mn*.8),dur,xp:Math.round(mn*(5+lv*1.6)*m*(dur>=1800?1.3:1)),res:qSplit(Math.round(mn*(10+lv*2)*1.6))}};
  const ids=[],n=Math.random()<.4?2:3;while(ids.length<n){const i=R(QP.length);if(!ids.includes(i))ids.push(i)}
  ids.forEach(i=>q.push(mk(QP[i][0],QP[i][1],300+R(601))));
  const lq=()=>{const l=P(LQ);return mk('⏳ '+l[0],l[1],1800+R(1801))};
@@ -177,10 +221,19 @@ function incoming(a){const c=S.camps[a.c],r=res(c.g),pw=Math.round(a.p*(1-r)),df
  if(pw>df){RK.forEach(k=>{S.r[k]=Math.floor(S.r[k]*.8)});let l=0;const lr=[];for(const k in U){const x=Math.round(S.u[k]*.25);S.u[k]-=x;l+=x;if(x)lr.push(`${U[k].ic} ${x}`)}
   L.push('❌ Der Überfall gelingt.','20 % deiner Rohstoffe wurden geplündert.',`Verluste: ${lr.join(' · ')||'keine'}.`);lg(`🔥 ${c.n} hat dich überfallen!`);toast('Überfall von '+c.n+'!');report('❌ Überfall von '+c.n,false,L)}
  else{gain(5+a.c*2);c.pw=Math.max(20,Math.round(c.pw*.9));L.push('🛡️ Du wehrst den Angriff ab!',`Die Angreifer verlieren Stärke (−10 %), ${S.hero.n} erhält Erfahrung.`);lg(`🛡️ Überfall von ${c.n} abgewehrt!`);toast('Überfall abgewehrt!');report('🛡️ Abwehr: '+c.n,true,L)}}
-function finishQuest(){const q=S.q;S.q=null;addRes(q.res,q.amt);gain(q.xp);let it='';
- if(Math.random()<.2+q.dur/3600*.5+luck()*.01){const x=genDrop(0);addItem(x);it=' Bonus: '+x.n+'.'}
- lg(`📜 „${q.t}“ erledigt. ${q.x} Lohn: ${RN[q.res]}${q.amt}, ${q.xp} EP.${it}`);toast('Quest erledigt!');S.qo=genQ()}
-
+const qRes=q=>typeof q.res==='string'?{h:0,l:0,e:0,[q.res]:q.amt}:q.res;
+const qChance=q=>Math.min(.95,.2+q.dur/3600*.5+luck()*.01);
+const qChips=q=>{const r=qRes(q);return RK.map(k=>`<span class="ch">${RN[k]} ${r[k]}</span>`).join('')};
+function questLoot(){const x=Math.random();return x<.5?genDrop(0):x<.8?mkFood(P(Object.keys(FD))):genGem(P(Object.keys(GT)),1)}
+function finishQuest(){const q=S.q;S.q=null;S.dec={q,i:R(DEC.length)};S.qo=genQ();lg(`📜 „${q.t}“ ist erledigt. Der König muss entscheiden.`);toast('👑 Eine Entscheidung wartet auf dich')}
+function decide(oi){const sc=DEC[S.dec.i],q=S.dec.q,o=sc.o[oi],e=o.e||{},r3=qRes(q),m=e.res==null?1:e.res,L=[sc.x,`Dein Urteil: ${o.t}`,o.r];
+ const got={};RK.forEach(k=>{got[k]=Math.round(r3[k]*m);addRes(k,got[k])});L.push(`Belohnung: 🪵${got.h} 🧱${got.l} ⛓️${got.e}`);
+ if(e.coin){const c=Math.round(e.coin*Math.max(1,q.dur/600));addCoin({b:c});L.push(`+${c} 🥉`)}
+ const xp=Math.round(q.xp*(e.xp||1));gain(xp);L.push(`+${xp} EP`);
+ if(e.rep){S.rep=Math.max(0,Math.min(100,S.rep+e.rep));L.push(`Ruf ${e.rep>0?'+':''}${e.rep} (jetzt ${S.rep})`)}
+ [['mut','Mut'],['wt','Durst'],['fd','Hunger'],['en','Energie']].forEach(([k,n])=>{if(e[k]){S[k]=Math.max(0,Math.min(k==='mut'?mutMax():100,S[k]+e[k]));L.push(`${n} ${e[k]>0?'+':''}${e[k]}`)}});
+ if(Math.random()<qChance(q)+(e.item||0)){const x=questLoot();addItem(x);L.push(`🎁 Beute: ${x.n}`)}
+ lg(`📜 ${q.t}: ${o.t}.`);toast('Urteil gesprochen');report('👑 '+sc.q,null,L);S.dec=null}
 const dd=(a,b)=>{const i=S.camps.indexOf(a),j=S.camps.indexOf(b);return Math.hypot(PT[i][0]-PT[j][0],PT[i][1]-PT[j][1])};
 function aiWar(now){for(let n=0;n<2&&now>=S.nw;n++){S.nw+=240000+R(240000);const ai=S.camps.filter(c=>!c.own);if(ai.length<2)continue;
  const a=P(ai),t=P(ai.filter(x=>x!==a).sort((p,q)=>dd(a,p)-dd(a,q)).slice(0,3)),A=a.pw*(.8+Math.random()*.4),T=t.pw*(.8+Math.random()*.4);
@@ -196,11 +249,11 @@ function autoTick(now){let ch=false;const A=S.auto;
  for(const k in U){const tgt=A.rec[k]||0;if(!tgt||U[k].lord||S.b.barr<U[k].need||S.tq.length>=3)continue;
   const have=S.u[k]+S.tq.filter(t=>t.u===k).reduce((a,t)=>a+t.n,0)+S.at.reduce((a,x)=>a+(x.u[k]||0),0),n=Math.min(5,tgt-have,Math.floor((popMax()-pop())/U[k].p));
   if(n>0&&afford(uc(k,n))){pay(uc(k,n));S.tq.push({u:k,n,st:now,end:now+n*ut(k)*1000});lg(`🤖 ${n}× ${U[k].n} in Ausbildung.`);ch=true}}
- if(A.eat){const use=f=>{const i=S.inv.findIndex(it=>it.k==='f'&&FD[it.id][f]>0);if(i<0)return false;const it=S.inv[i],d=FD[it.id];S.wt=Math.min(100,S.wt+d.w);S.fd=Math.min(100,S.fd+d.f);S.mut=Math.min(mutMax(),S.mut+d.mu);S.en=Math.min(100,S.en+(d.en||0));S.wm=Math.min(100,S.wm+(d.wm||0));S.inv.splice(i,1);lg(`🤖 ${it.n} verzehrt.`);return true};
+ if(A.eat){const use=f=>{const i=S.inv.findIndex(it=>it.k==='f'&&FD[it.id][f]>0&&!(FD[it.id].buff&&BF[FD[it.id].buff].bad));if(i<0)return false;const it=S.inv[i];eat(it.id);S.inv.splice(i,1);lg(`🤖 ${it.n} verzehrt.`);return true};
   if(S.wt<30){if(now>=S.well){S.wt=Math.min(100,S.wt+30);S.well=now+WELL;lg('🤖 Wasser am Brunnen geschöpft.');ch=true}else if(use('w'))ch=true}
   if(S.fd<30&&use('f'))ch=true;
   if(S.wm<30&&night()&&now>=S.fire&&S.r.h>=15){S.r.h-=15;S.fire=now+FIRE;lg('🤖 Lagerfeuer entzündet.');ch=true}}
- if(A.q&&!S.q&&S.qo.length&&!blocked('quest')){const q=S.qo.filter(x=>x.mut<=S.mut).sort((a,b)=>a.mut-b.mut)[0];if(q){S.mut-=q.mut;S.q=Object.assign({},q,{start:now,end:now+q.dur*1000});S.en=Math.max(0,S.en-10);lg(`🤖 Quest angenommen: ${q.t}`);ch=true}}
+ if(A.q&&!S.q&&!S.dec&&S.qo.length&&!blocked('quest')){const q=S.qo.filter(x=>x.mut<=S.mut).sort((a,b)=>a.mut-b.mut)[0];if(q){S.mut-=q.mut;S.q=Object.assign({},q,{start:now,end:now+q.dur*1000});S.en=Math.max(0,S.en-10);lg(`🤖 Quest angenommen: ${q.t}`);ch=true}}
  return ch}
 function tick(){
  const now=Date.now(),dt=Math.min((now-S.t)/1000,28800);S.t=now;if(!S.hero)return;
@@ -209,7 +262,7 @@ function tick(){
  for(const k of ['wood','clay','iron']){const r=B[k].r;if(S.r[r]<cap())S.r[r]=Math.min(cap(),S.r[r]+rate(k)*dt*pm)}
  S.camps.forEach((c,i)=>{if(c.own){const r=RK[i%3];if(S.r[r]<cap())S.r[r]=Math.min(cap(),S.r[r]+.3*SP.prod*1.3**tier(i)*dt)}});
  S.mut=Math.min(mutMax(),S.mut+mutRegen()*dt);
- const ad=Math.min(dt,600),sm=1-Math.min(.6,fx('surv')/100),fl=now<S.fire,K=SP.surv;S.wt=Math.max(0,S.wt-.05*K*ad*sm);S.fd=Math.max(0,S.fd-.03*K*ad*sm);S.en=Math.min(100,Math.max(0,S.en-.012*K*ad*sm+(fl?.03*ad:0)));S.wm=Math.min(100,Math.max(0,S.wm+(fl?.05:night()?-.03*sm:.02)*ad));
+ const ad=Math.min(dt,600),sm=1-Math.min(.6,fx('surv')/100),fl=now<S.fire,K=SP.surv;S.buffs=S.buffs.filter(b=>b.end>now);S.wt=Math.max(0,S.wt-.05*K*ad*sm*buffMul('wt'));S.fd=Math.max(0,S.fd-.03*K*ad*sm*buffMul('fd'));S.en=Math.min(100,Math.max(0,S.en-.012*K*ad*sm*buffMul('en')+(fl?.03*ad:0)));S.wm=Math.min(100,Math.max(0,S.wm+(fl?.05:night()?-.03*sm*buffMul('wm'):.02)*ad));
  let ch=false;
  if(S.aggr>0){S.nat-=Math.min(dt,3);if(S.nat<=0&&!S.inc.length&&S.hero.lv>=2){const pool=[];S.camps.forEach((c,i)=>{if(c.own||c.rel==='peace'||c.rel==='trade')return;for(let q=0;q<(c.rel==='war'?3:1);q++)pool.push(i)});
   if(pool.length){const c=P(pool);S.inc.push({c,p:Math.round(campDef(c)*.6*(S.camps[c].rel==='war'?1.2:1)),end:now+WARN});lg(`⚠️ ${S.camps[c].n} greift in ${WARN/60000} Min. an!`);toast('⚠️ Angriff naht!');ch=true}
@@ -317,12 +370,21 @@ const coinsFor=it=>{const v=it.v,r=it.r||0;return r===0?{b:3+v}:r===1?{b:10+2*v,
 const coinTxt=c=>[c.g&&`🥇${c.g}`,c.s&&`🥈${c.s}`,c.b&&`🥉${c.b}`].filter(Boolean).join(' ')||'–';
 const dustFor=g=>[0,2,6,15][g.lv];
 const gemChance=n=>{const m=n/25-1;return{p3:Math.min(.4,.01+m*.015),p2:Math.min(.5,.1+m*.04)}};
+const gearPrice=it=>(it.r||0)===0?15+it.v*6:(it.r===1?60+it.v*12:400+it.v*30);
+function restock(){const mk=k=>{const it=genItem(k,Math.random()<.3?1:0);return{it,p:gearPrice(it),sold:false}},items=[mk('w'),mk('w'),mk('a'),mk('a'),mk('m')];
+ if(Math.random()<.06){const it=genItem(P(['w','a','m']),2);items[R(5)]={it,p:gearPrice(it),sold:false}}S.shop={t:Date.now()+1800000,items}}
+const MENU=[['water',2],['tea',5],['beer',4],['wine',9],['mead',8],['bread',4],['cheese',7],['broth',8],['stew',10],['meat',12],['salt',9],['cake',16],['roast',18],['feast',36]];
+function shopHtml(){if(!S.shop||Date.now()>S.shop.t)restock();
+ let o='<h2>🛒 Marktstand</h2><div class="card"><h2 style="font-size:18px">Speisen &amp; Getränke</h2><p>Aufwendigere Speisen kosten mehr, halten aber länger vor. Getränke und Gewürztes haben Nebenwirkungen.</p>'+MENU.map(([id,p])=>`<div class="row" style="margin-top:8px"><span class="ic">${FD[id].ic}</span><div class="g">${hb(FD[id].n)}<p>${foodTxt(id)}</p></div><button class="b s" data-a="buy" data-id="${id}" data-p="${p}">🥉 ${p}</button></div>`).join('')+'</div>';
+ o+=`<div class="card"><h2 style="font-size:18px">Ausrüstung vom Schmied</h2><p>Neue Ware in ${ft((S.shop.t-Date.now())/1000)}.</p>${S.shop.items.map((x,i)=>`<div class="row" style="margin-top:8px"><span class="ic">${x.it.ic}</span><div class="g">${hb(nm(x.it))}<p style="color:${RC[x.it.r||0]}">${istat(x.it)} · Sockel ${x.it.so}</p>${fxHtml(x.it)}</div><button class="b s" data-a="gbuy" data-i="${i}" ${x.sold?'disabled':''}>${x.sold?'Verkauft':coinTxt(coinV(x.p))}</button></div>`).join('')}</div>`;
+ o+=`<div class="card"><h2 style="font-size:18px">Edelsteine</h2><p>Ein einfacher Stein (I) kostet 🥈6. Bessere gibt es bei der Hexe.</p><div class="row">${Object.keys(GT).map(g=>`<button class="b s" data-a="gembuy" data-g="${g}">${GT[g].ic} ${GT[g].n} I</button>`).join('')}</div></div>`;
+ return o}
 let tradeP=-1;
 const partners=()=>S.camps.map((c,i)=>i).filter(i=>{const c=S.camps[i];return !c.own&&(c.rel==='peace'||c.rel==='trade')});
 const coinV=v=>({g:Math.floor(v/100),s:Math.floor(v%100/10),b:v%10});
 function genOffers(){const g=P(Object.keys(GT)),lv=Math.random()<.2?3:1+R(2);return[{k:'dust',n:4+R(7),p:0},{k:'gem',g,lv,p:[0,25,70,160][lv]},{k:'food',id:P(['stew','tea','meat','mead']),p:10}].map(x=>{if(x.k==='dust')x.p=x.n*3;return x})}
 function vHandel(){const now=Date.now(),T=tradeSel;
- let o=`<div class="card"><p style="color:var(--ink)">🥉 ${S.coin.b} · 🥈 ${S.coin.s} · 🥇 ${S.coin.g}</p></div><h2>🛒 Marktstand</h2><div class="card"><p>Verkauft Verpflegung für Bronze.</p><div class="row">${[['water',2],['bread',4],['tea',4],['stew',8],['mead',6]].map(([id,p])=>`<button class="b s" data-a="buy" data-id="${id}" data-p="${p}">${FD[id].ic} ${FD[id].n} · 🥉${p}</button>`).join('')}</div></div><h2>🤝 Handel mit Partnern</h2>`;
+ let o=`<div class="card"><p style="color:var(--ink)">🥉 ${S.coin.b} · 🥈 ${S.coin.s} · 🥇 ${S.coin.g}</p></div>${shopHtml()}<h2>🤝 Handel mit Partnern</h2>`;
  const ps=partners();
  if(!ps.length)return o+'<div class="card"><p>Du hast noch keine Friedens- oder Handelspartner. Biete einem Dorf auf der Karte Frieden an. Mit einem Handelspakt bekommst du bessere Preise.</p></div>';
  if(!ps.includes(tradeP))tradeP=ps[0];
@@ -349,23 +411,25 @@ function slotCard(k){const it=S.eq[k];
 const CATS=[['all','Alle'],['w','🗡️ Waffen'],['a','🛡️ Rüstung'],['m','📿 Amulette'],['g','💎 Steine'],['f','🍞 Verbrauch']];
 let icat='all';
 function vEquip(){const cnt=k=>k==='all'?S.inv.length:S.inv.filter(x=>x.k===k).length;
- let o=['w','a','m'].map(slotCard).join('')+`<div class="card"><p style="color:var(--ink)">🥉 ${S.coin.b} · 🥈 ${S.coin.s} · 🥇 ${S.coin.g} · 💠 Quarzstaub ${S.dust}</p></div><h2>Rucksack (${S.inv.length}/30)</h2><div class="row" style="margin-bottom:8px">${CATS.map(c=>`<button class="b s ${icat===c[0]?'on':''}" data-a="icat" data-c="${c[0]}">${c[1]} ${cnt(c[0])}</button>`).join('')}</div>`;
+ let o=['w','a','m'].map(slotCard).join('')+`<div class="card"><p style="color:var(--ink)">🥉 ${S.coin.b} · 🥈 ${S.coin.s} · 🥇 ${S.coin.g} · 💠 Quarzstaub ${S.dust}</p><p style="color:var(--ink)">Widerstände gesamt: ${resTotal()}</p></div><h2>Rucksack (${S.inv.length}/30)</h2><div class="row" style="margin-bottom:8px">${CATS.map(c=>`<button class="b s ${icat===c[0]?'on':''}" data-a="icat" data-c="${c[0]}">${c[1]} ${cnt(c[0])}</button>`).join('')}</div>`;
  if(G!==null)o+='<p class="e">Tippe bei einem Item auf „◯ Einsetzen“. Gesockelte Edelsteine lassen sich mit ✕ entfernen, werden dabei aber zerstört.</p>';
  const list=S.inv.map((it,i)=>[it,i]).filter(x=>icat==='all'||x[0].k===icat).sort((p,q)=>(q[0].r||0)-(p[0].r||0));
  if(!list.length)o+='<div class="card"><p>In dieser Kategorie ist nichts. Besiege Monster oder steig auf, um Beute zu finden.</p></div>';
  return o+list.map(([it,i])=>`<div class="card"><div class="row"><span class="ic">${it.ic}</span><div class="g">${hb(nm(it))}<p style="color:${RC[it.r||0]}">${istat(it)}${it.so?` · Sockel ${it.so}`:''}</p>${it.k==='g'||it.k==='f'?'':fxHtml(it)+resHtml(it)}</div>
  ${it.k==='g'?`<button class="b ${G===i?'on':''}" data-a="gem" data-i="${i}">${G===i?'Abbrechen':'Einsetzen'}</button>`:it.k==='f'?`<button class="b" data-a="use" data-i="${i}">Nutzen</button>`:`<button class="b s" data-a="eq" data-i="${i}">Anlegen</button>`}</div></div>`).join('')}
+const resTotal=()=>Object.keys(GT).map(g=>`${GT[g].ic} ${Math.round(res(g)*100)} %`).join(' · ')+' (max. 75 %)';
+function buffCard(){return S.buffs.length?`<div class="card"><h2>Zustände</h2>${S.buffs.map(b=>tbar(BF[b.id].n,b.start,b.end,BF[b.id].bad?'r':'g')+`<p>${buffTxt(BF[b.id])}</p>`).join('')}</div>`:''}
 function vHeld(){const h=S.hero,c=CL[h.c],dm=dmul(),fl=Date.now()<S.fire,ef=Object.keys(FX).map(id=>[id,fx(id)]).filter(x=>x[1]);
- return `<div class="card"><div class="row"><span class="ic">${c.ic}</span><div class="g">${hb(E(h.n))} <span class="t">${c.n}, Stufe ${h.lv}</span><div class="bar x"><i style="width:${h.xp/(xpN(h.lv))*100}%"></i></div><p>${h.xp} / ${xpN(h.lv)} EP</p></div></div><p style="margin-top:4px">⚔️ Angriff ${hAtk()} · ❤️ Leben ${hHp()} · 🛡️ Abwehr ${hDef()} · 🍀 Glück ${luck()}</p><div class="row" style="margin-top:6px"><button class="b" data-a="inv">🎒 Inventar öffnen</button></div></div>
+ return `<div class="card"><div class="row"><span class="ic">${c.ic}</span><div class="g">${hb(E(h.n))} <span class="t">${c.n}, Stufe ${h.lv}</span><div class="bar x"><i style="width:${h.xp/(xpN(h.lv))*100}%"></i></div><p>${h.xp} / ${xpN(h.lv)} EP</p></div></div><p style="margin-top:4px">⚔️ Angriff ${hAtk()} · ❤️ Leben ${hHp()} · 🛡️ Abwehr ${hDef()} · 🍀 Glück ${luck()}</p><p style="color:var(--ink)">Widerstände gesamt: ${resTotal()}</p><div class="row" style="margin-top:6px"><button class="b" data-a="inv">🎒 Inventar öffnen</button></div></div>
  <div class="card"><h2>Überleben</h2>${[['💧','bw','wt'],['🍖','bf','fd'],['⚡','be','en'],['🔥','bm','wm']].map(x=>`<div class="row"><span>${x[0]}</span><div class="g bar ${x[1]}"><i data-bar="${x[2]}"></i></div></div>`).join('')}
  <p class="${dm<1?'':'e'}">${dm<1?`😩 Geschwächt: Angriff ×${dm.toFixed(2)}, Mut-Erholung halbiert. Sterben kannst du nicht.`:'😊 Gut versorgt'}</p>${consHtml()}<p>${night()?'🌙 Nacht: Es wird kalt, Monster sind 20 % stärker. Ein Feuer wärmt dich und lässt dich ausruhen.':'☀️ Tag: Du wärmst dich langsam auf.'}</p>
  ${Date.now()<S.fire?tbar('🔥 Lagerfeuer brennt',S.fire-FIRE,S.fire,'o',1):''}${Date.now()<S.well?tbar('💧 Brunnen wieder bereit',S.well-WELL,S.well,'b',1):''}<div class="row" style="margin-top:6px"><button class="b s" data-a="well">💧 Brunnen</button><button class="b s" data-a="fire">🔥 Feuer${fl?' brennt':' 🪵15'}</button><button class="b s" data-a="craft" data-id="bread" data-cost="25,5,0">🍞 Brot</button><button class="b s" data-a="craft" data-id="stew" data-cost="40,20,0">🍲 Eintopf</button><button class="b s" data-a="craft" data-id="tea" data-cost="10,0,0">🍵 Tee</button></div><p>Feuer brennt 5 Minuten. Brunnen: gratis, 1 Minute Pause. Brot 🪵25 🧱5, Eintopf 🪵40 🧱20, Tee 🪵10.</p></div>
- <div class="card"><h2>Aktive Effekte</h2>${ef.length?ef.map(x=>`<p style="color:var(--ink)">✦ ${FX[x[0]][0]} +${Math.round(x[1])} %</p>`).join(''):'<p>Keine. Epische, legendäre und Set-Items haben Spezialeffekte.</p>'}${Object.keys(SETS).map(q=>{const n=setCnt(q);return n?`<p style="color:${RC[4]}">Set ${SETS[q].n}: ${n}/3</p>`:''}).join('')}</div>`}
+ ${buffCard()}<div class="card"><h2>Aktive Effekte</h2>${ef.length?ef.map(x=>`<p style="color:var(--ink)">✦ ${FX[x[0]][0]} +${Math.round(x[1])} %</p>`).join(''):'<p>Keine. Epische, legendäre und Set-Items haben Spezialeffekte.</p>'}${Object.keys(SETS).map(q=>{const n=setCnt(q);return n?`<p style="color:${RC[4]}">Set ${SETS[q].n}: ${n}/3</p>`:''}).join('')}</div>`}
 function vAbenteuer(){
  let o=`<div class="card"><p>Mut <b id="mutt"></b> (jeder Kampf kostet 8)</p><div class="bar"><i id="mutb"></i></div></div>${blocked('fight')?`<div class="warn">${blocked('fight')}</div>`:''}<div id="fight"></div><h2>Monster in der Nähe</h2>${night()?'<p class="t">🌙 Nachts sind Monster 20 % stärker.</p>':''}`;
  o+=S.enc.map((e,i)=>{const m=MS[e.m],g=GT[m.g];return `<div class="card"><div class="row"><span class="ic">${m.ic}</span><div class="g">${hb((e.el?'💀 ':'')+m.n)} <span class="t">Stufe ${e.l}${e.el?' · Elite':''}</span><p>${g.ic} ${g.n} · dein Widerstand ${Math.round(res(m.g)*100)} %</p></div><button class="b" data-a="fight" data-i="${i}" ${F||S.mut<8?'disabled':''}>Kämpfen</button></div></div>`}).join('');
  o+='<h2>Aushang</h2>';
- o+=S.q?`<div class="card"><b>${E(S.q.t)}</b>${tbar('📜 Quest läuft',S.q.start||S.q.end-S.q.dur*1000,S.q.end)}<p>Belohnung: ${S.q.xp} EP</p></div>`:S.qo.map((q,i)=>`<div class="card"><b>${q.t}</b><div class="row" style="margin-top:6px"><span class="ch">💪 ${q.mut}</span><span class="ch">⏱ ${ft(q.dur)}</span><span class="ch">${q.xp} EP</span><span class="ch">${RN[q.res]} ${q.amt}</span><button class="b" data-a="quest" data-i="${i}">Annehmen</button></div></div>`).join('');
+ o+=S.q?`<div class="card"><b>${E(S.q.t)}</b>${tbar('📜 Quest läuft',S.q.start||S.q.end-S.q.dur*1000,S.q.end)}<p>Belohnung: ${S.q.xp} EP</p></div>`:S.qo.map((q,i)=>`<div class="card"><b>${q.t}</b><div class="row" style="margin-top:6px"><span class="ch">💪 ${q.mut}</span><span class="ch">⏱ ${ft(q.dur)}</span><span class="ch">${q.xp} EP</span>${qChips(q)}<span class="ch">🎁 ${Math.round(qChance(q)*100)} %</span><button class="b" data-a="quest" data-i="${i}">Annehmen</button></div></div>`).join('');
  return o}
 
 function vMehr(){const A=['Aus','Selten','Normal','Oft'];let bk=false;try{bk=!!localStorage.getItem(K+'_backup')}catch(e){}
@@ -378,7 +442,7 @@ function vMehr(){const A=['Aus','Selten','Normal','Oft'];let bk=false;try{bk=!!l
 
 function vStart(){return `<div class="card"><h2 style="font-size:34px">Castle Day</h2><p>Baue ein Dorf, rüste deinen Helden aus, besiege Monster und erobere die Nachbardörfer.</p><input type="text" id="nm" maxlength="20" placeholder="Name deines Helden" autocomplete="off"></div>`+Object.keys(CL).map(k=>`<div class="card"><div class="row"><span class="ic">${CL[k].ic}</span><div class="g">${hb(CL[k].n)}<p>${CL[k].d}</p></div><button class="b" data-a="start" data-c="${k}">Wählen</button></div></div>`).join('')}
 
-function modal(){const m=$('#modal');if(!S.hero||F||(!S.lvq.length&&!S.rq.length)){m.hidden=true;return}m.hidden=false;if(S.rq.length&&!Mr){const r=S.rq[0];$('#mbox').innerHTML=`<h2 style="font-size:24px">${E(r.t)}</h2><div class="rep">${r.lines.map(l=>`<p>${E(l)}</p>`).join('')}</div><button class="b" style="margin:6px 0 0" data-a="rclose">Schließen</button>`;return}const lv=S.lvq[0];
+function modal(){const m=$('#modal');if(!S.hero||F||(!S.lvq.length&&!S.rq.length&&!S.dec)){m.hidden=true;return}m.hidden=false;if(S.rq.length&&!Mr){const r=S.rq[0];$('#mbox').innerHTML=`<h2 style="font-size:24px">${E(r.t)}</h2><div class="rep">${r.lines.map(l=>`<p>${E(l)}</p>`).join('')}</div><button class="b" style="margin:6px 0 0" data-a="rclose">Schließen</button>`;return}if(S.dec&&!Mr){const sc=DEC[S.dec.i];$('#mbox').innerHTML=`<h2 style="font-size:24px">👑 Königliches Urteil</h2><div class="rep"><p><b>${E(sc.q)}</b></p><p>${E(sc.x)}</p><p class="t">Aufgabe: ${E(S.dec.q.t)}</p>${sc.o.map((o,i)=>`<button class="b" style="width:100%;margin:8px 0 0;text-align:left" data-a="decide" data-o="${i}">${E(o.t)}</button><p class="t">${effTxt(o.e||{})}</p>`).join('')}</div>`;return}const lv=S.lvq[0];
  $('#mbox').innerHTML=Mr?`<div class="big pop">${Mr.ic}</div><h2 style="color:${RC[Mr.r||0]}">${E(Mr.n)}</h2><p>${istat(Mr)}</p>${fxHtml(Mr)}<button class="b" style="margin:12px 0 0" data-a="take">Einsacken</button>`:`<h2 style="font-size:36px">Stufe ${lv}!</h2><p>Mehr Angriff, mehr Leben – und eine Truhe wartet.</p><div class="big">🎁</div><button class="b" style="margin:6px 0 0" data-a="open">Truhe öffnen</button>`}
 
 function render(){
@@ -422,6 +486,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   else{S.rep=Math.max(0,S.rep-3);lg(`⚔️ Du erklärst ${c.n} den Krieg.`)}
   toast('⚔️ Krieg mit '+c.n);break}
  case 'tset':if(d.f==='n')tradeSel.n=+d.v;else tradeSel[d.f]=d.v;break;
+ case 'decide':if(!S.dec)return;decide(+d.o);break;
+ case 'gbuy':{const x=S.shop.items[+d.i];if(!x||x.sold)return;if(cv()<x.p){toast('Zu wenig Münzen.');return}if(S.inv.length>=30){toast('Rucksack voll.');return}setCv(cv()-x.p);addItem(JSON.parse(JSON.stringify(x.it)));x.sold=true;toast(x.it.n+' gekauft');break}
+ case 'gembuy':{if(cv()<60){toast('Zu wenig Münzen.');return}if(S.inv.length>=30){toast('Rucksack voll.');return}setCv(cv()-60);addItem(genGem(d.g,1));toast('Edelstein gekauft');break}
  case 'tp':tradeP=+d.i;break;
  case 'trade':{const c=S.camps[tradeP],T=tradeSel;if(!c||!(c.rel==='trade'||c.rel==='peace'))return;if(now>c.tr.t)c.tr={u:0,t:now+900000};
   const rate=c.rel==='trade'?1:2,cap2=c.rel==='trade'?200:100,give=T.n*rate;
@@ -445,10 +512,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  case 'buy':{const p=+d.p;if(cv()<p){toast('Zu wenig Münzen.');return}setCv(cv()-p);addItem(mkFood(d.id));toast(FD[d.id].n+' gekauft');break}
  case 'fight':if(F||S.mut<8)return;{const bl=blocked('fight');if(bl){toast(bl);return}}startFight(+d.i);break;
  case 'fdone':F=null;break;
- case 'quest':{const q=S.qo[+d.i];if(S.q)return;{const bl=blocked('quest');if(bl){toast(bl);return}}if(S.mut<q.mut){toast('Zu wenig Mut. Trink erst mal was.');return}S.mut-=q.mut;S.q=Object.assign({},q,{start:now,end:now+q.dur*1000});S.en=Math.max(0,S.en-10);break}
+ case 'quest':{const q=S.qo[+d.i];if(S.q||S.dec)return;{const bl=blocked('quest');if(bl){toast(bl);return}}if(S.mut<q.mut){toast('Zu wenig Mut. Trink erst mal was.');return}S.mut-=q.mut;S.q=Object.assign({},q,{start:now,end:now+q.dur*1000});S.en=Math.max(0,S.en-10);break}
  case 'well':if(now<S.well){toast('Der Eimer ist noch unterwegs.');return}S.wt=Math.min(100,S.wt+30);S.well=now+WELL;toast('Glug, glug. Durst +30');break;
  case 'craft':{const c=d.cost.split(',').map(Number);if(!afford(c))return;pay(c);addItem(mkFood(d.id));break}
- case 'use':{const it=S.inv[+d.i],f=FD[it.id];S.wt=Math.min(100,S.wt+f.w);S.fd=Math.min(100,S.fd+f.f);S.mut=Math.min(mutMax(),S.mut+f.mu);S.en=Math.min(100,S.en+(f.en||0));S.wm=Math.min(100,S.wm+(f.wm||0));S.inv.splice(+d.i,1);toast(it.n+' – lecker!');break}
+ case 'use':{const it=S.inv[+d.i];eat(it.id);S.inv.splice(+d.i,1);toast(it.n+': '+foodTxt(it.id).split(' · ')[0]);break}
  case 'eq':{const it=S.inv[+d.i],old=S.eq[it.k];S.eq[it.k]=it;S.inv.splice(+d.i,1);if(old)S.inv.push(old);G=null;break}
  case 'junk':{const it=S.inv[+d.i];S.inv.splice(+d.i,1);RK.forEach(k=>addRes(k,8*(it.r+1)));toast('Zerlegt');break}
  case 'gem':G=G===+d.i?null:+d.i;break;
@@ -487,6 +554,7 @@ const GL=[['🪵','Holz','Baumaterial. Der Holzfäller produziert es.'],['🧱',
 ['⛺','Lager','Entwicklungsstufe 1 von 5. Gegnerische Dörfer wachsen mit der Zeit.'],['🛖','Weiler','Stufe 2 von 5 eines gegnerischen Dorfes.'],['🏡','Dorf','Stufe 3 von 5 eines gegnerischen Dorfes.'],['🏰','Burg','Stufe 4 von 5. Starke Verteidigung. Kann überfallen und bei 0 % Loyalität übernommen werden.'],['🏯','Festung','Höchste Stufe 5: stark verteidigt, aber viel Beute.'],['🤖','Automatisierung','Bauschleife, Rekrutierung, Versorgung und Quests laufen automatisch.'],['💾','Spielstand','Sichert deinen Fortschritt als Datei, damit du ihn nach einem Update wieder einspielen kannst.'],['⚒️','Werkstatt','Schmiede, Hexe und Händler.'],['🥉','Bronze','Münze. 10 Bronze = 1 Silber.'],['🥈','Silber','Münze. 10 Silber = 1 Gold.'],['🥇','Gold','Wertvollste Münze.'],['💠','Quarzstaub','Entsteht beim Zerlegen von Edelsteinen. Die Hexe fertigt daraus neue Steine.'],['🧙','Hexe','Zerlegt Edelsteine und fertigt neue.'],['🕊️','Frieden','Das Dorf greift dich nicht an.'],['🤝','Handelspakt','Tausche Rohstoffe 1:1.'],['😐','Neutral','Keine besondere Beziehung.'],['🎯','Bogenschütze','Fernkämpfer, ab Kaserne Stufe 4.'],['🏇','Reiter','Sehr schnell unterwegs, ab Kaserne Stufe 6.'],['⚜️','Ritter','Stärkste Truppe, ab Kaserne Stufe 8.'],['💀','Elite-Gegner','Stärker als normale Monster, aber mit mehr Beute und Erfahrung.'],['🛒','Händler','Marktstand, Handel mit Friedens- und Handelspartnern und Sonderangebote.'],['🌅','Morgen','Die Sonne geht auf.'],['🌇','Abend','Es dämmert, bald wird es Nacht.'],['🕐','Uhrzeit','Spielzeit: Ein Spieltag dauert 30 Minuten echter Zeit.'],['👑','Fürst','Sehr teure und sehr langsame Einheit. Senkt bei einem Sieg die Loyalität eines Dorfes. Nur so lassen sich Dörfer übernehmen.'],['🏛️','Versammlungsplatz','Hier werden Fürsten angeworben (Stufe 3 und Kaserne 10).'],['⛰️','Wall','Erhöht deine Abwehr um 5 % je Stufe.'],['🗼','Mauer','Erhöht die Abwehr um 8 % je Stufe und bietet Plätze für Bogenschützen.'],['🥶','Kälte','Zu kalt: Kämpfe und Ausrücken sind gesperrt.'],['😴','Erschöpft','Zu wenig Energie für Quests und Kämpfe.'],['🏠','Dein Dorf','Hier bist du zu Hause.'],['🚩','Erobertes Dorf','Gehört dir und liefert Rohstoffe.'],['✦','Spezialeffekt','Besonderer Bonus auf epischen, legendären und Set-Items.'],['★','Legendär','Legendäre Items haben zwei starke Effekte.'],['📿','Amulett','Gibt Glück und Sockel für Edelsteine.'],['◯','Sockel','Freier Platz für einen Edelstein.'],
 ['💥','Kritischer Treffer','Macht 80 % mehr Schaden.'],['🏆','Sieg','Du hast gewonnen und Belohnung erhalten.'],['😵','Bewusstlos','Du hast verloren. Du verlierst nur etwas Durst und Hunger, sterben kannst du nicht.'],['😩','Geschwächt','Zu niedrige Überlebenswerte senken deinen Angriff.'],['😊','Gut versorgt','Alle Überlebenswerte sind in Ordnung.'],
 ['🍞','Brot','Stillt Hunger.'],['🍲','Eintopf','Stillt viel Hunger und wärmt etwas.'],['🍯','Met','Stillt Durst und gibt Mut.'],['🍵','Kräutertee','Stillt Durst, wärmt und gibt Energie.'],['⚠️','Angriff naht','Ein Gegner überfällt bald dein Dorf. Deine Truppen und dein Held verteidigen.'],['🔨','Bauarbeiten','Ein Gebäude wird gerade ausgebaut.'],['🎁','Truhe','Belohnung beim Stufenaufstieg.'],['🪖','Truppen','Ausgebildete Soldaten.'],['🎉','Stufenaufstieg','Dein Held ist eine Stufe aufgestiegen.']];
+Object.keys(FD).forEach(id=>{if(!GL.some(x=>x[0]===FD[id].ic))GL.push([FD[id].ic,FD[id].n,foodTxt(id)])});
 const GR=GL.map(([k,t,x])=>[new RegExp(k.replace(/\uFE0F/g,'')+'\uFE0F?','g'),t,x,k]);
 function symAt(x,y){let n,o;if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r){n=r.startContainer;o=r.startOffset}}else if(document.caretPositionFromPoint){const q=document.caretPositionFromPoint(x,y);if(q){n=q.offsetNode;o=q.offset}}
  if(!n||n.nodeType!==3)return null;const t=n.data;for(const g of GR){g[0].lastIndex=0;let m;while((m=g[0].exec(t))){if(o>=m.index&&o<=m.index+m[0].length)return g}}return null}
